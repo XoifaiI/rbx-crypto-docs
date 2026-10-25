@@ -1,0 +1,62 @@
+---
+title: Random numbers
+description: Make keys, nonces, tokens and numbers nobody can predict.
+---
+
+Keys, nonces, salts and tokens have to be impossible to guess. `math.random` and `Random.new` aren't: they're fine for gameplay, but someone who sees a few of their numbers can work out the rest. The library's random number generator, `CSPRNG`, is safe for anything secret.
+
+```luau
+local CSPRNG = Cryptography.Utilities.CSPRNG
+
+local Key: buffer = CSPRNG.RandomBytes(32)
+```
+
+## What it makes
+
+| Call | What it gives |
+| --- | --- |
+| `RandomBytes(Count)` | `Count` random bytes, as a buffer. Use this for keys and nonces. |
+| `Random()` | A number from 0 up to, but not including, 1. |
+| `RandomInt(Min, Max)` | A whole number from `Min` to `Max`, both included. `RandomInt(Max)` is from 1 to `Max`. |
+| `RandomNumber(Min, Max)` | A number from `Min` to `Max`. `RandomNumber(Max)` is from 0 to `Max`. |
+| `RandomHex(Length)` | A string of `Length` hex characters. `Length` must be even. |
+| `RandomString(Length, AsBuffer?)` | `Length` random characters from `$` to `z`, as a string, or a buffer if `AsBuffer` is `true`. |
+| `MakeRandomString(Characters)` | A function like `RandomString` that picks from your own characters. |
+
+`RandomInt` picks every number in its range equally often. A range can hold up to 2^32 numbers.
+
+## Strings from your own characters
+
+`MakeRandomString` takes the characters to pick from, as a string or a buffer, and gives back a function that makes strings of them:
+
+```luau
+local RandomCode = CSPRNG.MakeRandomString("ABCDEFGHJKLMNPQRSTUVWXYZ23456789")
+
+local Code: string = RandomCode(8) -- like "K7XQ2MRA"
+```
+
+Make the function once, and call it as often as you like.
+
+## Where its randomness comes from
+
+On Roblox, the generator seeds itself from `HttpService:GenerateGUID`, and mixes in new GUIDs as it goes. From that seed it makes its output with keyed BLAKE3, and replaces its key after every 2 KB, so nobody who learns its state can work out what it gave out before.
+
+Outside Roblox, where there's no `HttpService`, it seeds from clock timing instead.
+
+## Adding your own randomness
+
+`AddEntropy` mixes bytes of your own into the generator:
+
+```luau
+local Extra: buffer = buffer.create(12)
+buffer.writef64(Extra, 0, os.clock())
+buffer.writeu32(Extra, 8, RemoteCallCount)
+
+CSPRNG.AddEntropy(Extra)
+```
+
+It only ever mixes bytes in, and never replaces what's there, so bytes that aren't random can't make it weaker. The buffer can be any length. Calling it with nothing mixes in new GUIDs.
+
+The `TrueRandom` example in the repository mixes in random bytes fetched from random.org at startup.
+
+Next: [Encoding](/docs/learn/encoding)

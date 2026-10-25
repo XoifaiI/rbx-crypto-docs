@@ -1,0 +1,134 @@
+---
+title: Common mistakes
+description: The mistakes that cause most bugs and holes with cryptography, each with a wrong and a right version.
+---
+
+These are the mistakes that cause most bugs and security holes. Each one has a wrong version and a right version, and links to the page that covers it.
+
+## Reusing a nonce
+
+```luau
+-- Wrong: the same nonce for every message gives away what they say
+local Nonce: buffer = buffer.create(12)
+local Ciphertext: buffer, Tag: buffer = AEAD.Encrypt(Message, Key, Nonce)
+```
+
+```luau
+-- Right: a new random nonce every time, sent with the ciphertext
+local Nonce: buffer = CSPRNG.RandomBytes(24)
+local Ciphertext: buffer, Tag: buffer = AEAD.Encrypt(Message, Key, Nonce, nil, nil, true)
+```
+
+See [Encryption](/docs/learn/encryption#nonces).
+
+## Using what Decrypt gave without checking it
+
+```luau
+-- Wrong: Decrypt gives nil when the data was changed, and this errors, or worse
+local Plaintext = AEAD.Decrypt(Ciphertext, Key, Nonce, Tag)
+local Data = HttpService:JSONDecode(buffer.tostring(Plaintext))
+```
+
+```luau
+-- Right: check for nil first
+local Plaintext: buffer? = AEAD.Decrypt(Ciphertext, Key, Nonce, Tag)
+if not Plaintext then
+	return -- changed, or the wrong key
+end
+
+local Data = HttpService:JSONDecode(buffer.tostring(Plaintext))
+```
+
+See [Encryption](/docs/learn/encryption#when-decrypting-fails).
+
+## Comparing MACs with ==
+
+```luau
+-- Wrong: two buffers are only == when they're the same buffer, so this is always false
+local _, Expected: buffer = Hashing.HMAC(Message, Key, Hashing.SHA2.SHA256, 64)
+if Expected == ReceivedMac then
+	Accept(Message)
+end
+```
+
+```luau
+-- Right: compare the bytes, in constant time
+local _, Expected: buffer = Hashing.HMAC(Message, Key, Hashing.SHA2.SHA256, 64)
+if Utilities.CtCompare(Expected, ReceivedMac) then
+	Accept(Message)
+end
+```
+
+Comparing the hex strings with `==` works, but it stops at the first character that differs, which tells an attacker how much of their guess was right. See [Message authentication](/docs/learn/authentication#checking-a-mac).
+
+## Using the hex where a buffer goes
+
+```luau
+-- Wrong: a hash gives the hex string first, and that's what Key gets
+local Key = Hashing.SHA2.SHA256(Secret)
+AEAD.Encrypt(Message, Key, Nonce) -- errors: Key must be a buffer
+```
+
+```luau
+-- Right: take the second value, the buffer
+local _, Key: buffer = Hashing.SHA2.SHA256(Secret)
+```
+
+See [Hashing](/docs/learn/hashing#hashing-a-message).
+
+## Making keys with math.random
+
+```luau
+-- Wrong: someone who sees a few math.random numbers can work out the rest
+local Key: buffer = buffer.create(32)
+for Index = 0, 31 do
+	buffer.writeu8(Key, Index, math.random(0, 255))
+end
+```
+
+```luau
+-- Right
+local Key: buffer = CSPRNG.RandomBytes(32)
+```
+
+See [Random numbers](/docs/learn/random).
+
+## Using a shared secret as a key
+
+```luau
+-- Wrong: the shared secret isn't tied to this exchange or this job
+local SharedSecret: buffer = X25519.Exchange(SecretKey, TheirPublicKey)
+AEAD.Encrypt(Message, SharedSecret, Nonce)
+```
+
+```luau
+-- Right: derive a key from it, with both public keys mixed in
+local SharedSecret: buffer = X25519.Exchange(SecretKey, TheirPublicKey)
+local _, SessionKey: buffer = DeriveSessionKey(Concatenate(SharedSecret, ClientPublicKey, ServerPublicKey), 32)
+AEAD.Encrypt(Message, SessionKey, Nonce)
+```
+
+See [Key exchange](/docs/learn/key-exchange#using-the-shared-secret).
+
+## Keeping a secret key on the client
+
+```luau
+-- Wrong: a LocalScript, or a module in ReplicatedStorage, is readable by every client
+local SIGNING_KEY: buffer = buffer.fromstring("my super secret key 1234567890ab")
+```
+
+Anything a client can see, an exploiter can read. Keep secret keys on the server, in `ServerScriptService` or `ServerStorage`, and only send clients public keys.
+
+## Using MD5 or SHA-1 for security
+
+```luau
+-- Wrong: someone can make a second file with the same MD5
+local Hex: string = Hashing.MD5(SaveData)
+```
+
+```luau
+-- Right
+local Hex: string = Hashing.SHA2.SHA256(SaveData)
+```
+
+See [Hashing](/docs/learn/hashing#picking-one).

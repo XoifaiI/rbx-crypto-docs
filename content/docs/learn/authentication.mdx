@@ -1,0 +1,100 @@
+---
+title: Message authentication
+sidebarTitle: Authentication
+description: Prove a message came from someone with the key and wasn't changed, and turn one key into many.
+---
+
+A hash proves a message wasn't damaged, but anyone can hash a message they changed. A MAC, a message authentication code, is a hash that needs a secret key. Only someone with the key can make one, so a MAC that checks out proves the message came from someone who has the key, and that nobody changed it.
+
+Encryption with [ChaCha20-Poly1305 or AES-GCM](/docs/learn/encryption) already does this for you. Use a MAC on its own when the message doesn't need to be secret, only trusted.
+
+## HMAC
+
+HMAC turns any hash into a MAC. Give it the message, the key, the hash function and the hash's block size:
+
+```luau
+local Hashing = Cryptography.Hashing
+
+local Key: buffer = Cryptography.Utilities.CSPRNG.RandomBytes(32)
+local Hex: string, Mac: buffer = Hashing.HMAC(Message, Key, Hashing.SHA2.SHA256, 64)
+```
+
+| Hash | Block size |
+| --- | --- |
+| SHA-224, SHA-256 | 64 |
+| SHA-384, SHA-512 | 128 |
+| SHA3-224 | 144 |
+| SHA3-256 | 136 |
+| SHA3-384 | 104 |
+| SHA3-512 | 72 |
+| BLAKE3 (`Blake3.Digest`) | 64 |
+| BLAKE2b (`Blake2b.Digest`) | 128 |
+| MD5, SHA-1 | 64 |
+
+HMAC with BLAKE3 is the fastest: on Roblox it does 50 KB in 26 μs, against 142 μs with SHA-256.
+
+## Checking a MAC
+
+Make the MAC again from the message you got, and compare it with the one that came with it, using `CtCompare`:
+
+```luau
+local Utilities = Cryptography.Utilities
+
+local _, Expected: buffer = Hashing.HMAC(Message, Key, Hashing.SHA2.SHA256, 64)
+if not Utilities.CtCompare(Expected, ReceivedMac) then
+	return -- changed, or made without the key
+end
+```
+
+`CtCompare` takes the same time however many bytes match, so it doesn't tell an attacker how close their guess was. Don't compare with `==`: two buffers are only `==` when they're the same buffer, so that check always fails, and comparing the hex strings with `==` gives away how many characters matched.
+
+## Keyed BLAKE3
+
+BLAKE3 has a keyed mode of its own, which is faster than HMAC. The key must be exactly 32 bytes:
+
+```luau
+local Hex: string, Mac: buffer = Hashing.Blake3.DigestKeyed(Message, Key)
+local _, Long: buffer = Hashing.Blake3.DigestKeyed(Message, Key, 64)
+```
+
+BLAKE2b takes a key too, from 1 to 64 bytes, as its third argument: `Hashing.Blake2b.Digest(Message, 32, Key)`.
+
+## KMAC
+
+KMAC is the MAC built into SHA-3. You pass a buffer for the output, and its length decides how long the MAC is:
+
+```luau
+local Output: buffer = buffer.create(32)
+local Hex: string, Mac: buffer = Hashing.KMAC.KMAC256(Message, Key, Output)
+```
+
+The MAC is written into `Output`, and the same buffer is given back. An optional fourth argument is a customization string, which gives a different MAC for the same key and message, so one key can be used for two jobs without their MACs ever matching:
+
+```luau
+Hashing.KMAC.KMAC256(Message, Key, Output, buffer.fromstring("chat"))
+```
+
+`KMAC128` and `KMAC256` work the same way. Unlike SHAKE, asking for a different length gives a completely different MAC, not a longer or shorter one.
+
+## Turning one key into many
+
+Use one secret to make separate keys for separate jobs, so a key leaking from one job doesn't give away the others.
+
+HKDF does this with HMAC. Give it the secret, an optional salt, a label for what the key is for, how many bytes you want, and the hash, its block size and its digest size:
+
+```luau
+local SessionKey: buffer = Hashing.HKDF(SharedSecret, nil, buffer.fromstring("session key"), 32, Hashing.SHA2.SHA256, 64, 32)
+```
+
+HKDF can give at most 255 times the hash's digest size: 8,160 bytes with SHA-256.
+
+BLAKE3 has a faster way. `DeriveKey` takes a context string, which should be unique to your game and the key's job, and gives back a function that makes keys from your secret:
+
+```luau
+local DeriveSessionKey = Hashing.Blake3.DeriveKey(buffer.fromstring("MyGame 2025-01-01 session key"))
+local _, SessionKey: buffer = DeriveSessionKey(SharedSecret, 32)
+```
+
+Make the context once, and use the function for every key of that kind.
+
+Next: [Encryption](/docs/learn/encryption)

@@ -1,0 +1,55 @@
+---
+title: Limits
+description: The numbers that change what you write.
+---
+
+Check a number before you hit it.
+
+Only numbers that change what you do are here. Passing a value outside one errors, naming the argument, unless the table says otherwise.
+
+## Hashing
+
+| | Limit |
+| --- | --- |
+| BLAKE3 length | 1 to 4,294,967,295 bytes. |
+| BLAKE3 key | Exactly 32 bytes. |
+| BLAKE2b length | 1 to 64 bytes. |
+| BLAKE2b key | 1 to 64 bytes. |
+| HKDF output | At most 255 times the hash's digest size: 8,160 bytes with SHA-256. |
+
+## Encryption
+
+| | Limit |
+| --- | --- |
+| ChaCha20-Poly1305 key | Exactly 32 bytes. |
+| ChaCha20-Poly1305 nonce | Exactly 12 bytes, or 24 with XChaCha20. |
+| Rounds | A positive even number. |
+| AES key | 16, 24 or 32 bytes. |
+| AES IV | At least 1 byte. |
+| A tag | 16 bytes. `AEAD.Decrypt` errors on any other length, and `AES.Decrypt` gives `nil`. |
+| Messages with one key and random 12 byte nonces | Change the key before 2^32. |
+
+## Signatures and key exchange
+
+| | Limit |
+| --- | --- |
+| Ed25519 and X25519 keys | Exactly 32 bytes. |
+| X25519 public keys | The few that give an all zero shared secret error. |
+| ML-KEM seeds and message | Exactly 32 bytes each. |
+| ML-DSA context | Up to 255 bytes. Longer makes `Sign` give `false`. |
+
+## Random numbers
+
+| | Limit |
+| --- | --- |
+| A `RandomInt` range | At most 2^32 numbers. |
+| `RandomHex` length | An even number. |
+| `RandomBytes` count | A whole number above 0. |
+
+## Encoding
+
+| | Limit |
+| --- | --- |
+| `FromHex` input | An even number of characters. |
+| `XOR` key | At least 1 byte. |
+| `Base64.Decode` on Roblox | Errors on text that isn't valid Base64. |

@@ -1,0 +1,21 @@
+---
+title: Benchmarks
+description: How rbx-cryptography compares with other Roblox cryptography libraries.
+---
+
+These numbers were measured in Roblox Studio on an AMD Ryzen AI 7 PRO 360, with boatbomber's Benchmarker plugin. Each is the median time for one call.
+
+## Results
+
+<Benchmarks />
+
+## Others
+
+| Job | Input | Median |
+| --- | --- | ---: |
+| KMAC-128 | 50 KB | 258 μs |
+| KMAC-256 | 50 KB | 312 μs |
+| XOR | 1 MB | 940 μs |
+| Ed25519 public key, sign and verify | 100 byte message | 369 μs |
+| ML-DSA-44 key generation, sign and verify | 32 byte message | 794 μs |
+| ML-KEM-512 key generation, encapsulate and decapsulate | | 201 μs |

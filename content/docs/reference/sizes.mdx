@@ -1,0 +1,77 @@
+---
+title: Sizes
+description: Every key, nonce, tag, digest, signature and ciphertext size, in bytes.
+---
+
+Look up how big something is.
+
+## Digests
+
+| Hash | Bytes |
+| --- | ---: |
+| MD5 | 16 |
+| SHA-1 | 20 |
+| SHA-224, SHA3-224 | 28 |
+| SHA-256, SHA3-256, BLAKE3 | 32 |
+| SHA-384, SHA3-384 | 48 |
+| SHA-512, SHA3-512, BLAKE2b | 64 |
+| SHAKE128, SHAKE256 | Any |
+
+BLAKE3 can give any length, and BLAKE2b any length from 1 to 64.
+
+## Encryption
+
+| | Key | Nonce | Tag |
+| --- | --- | --- | --- |
+| ChaCha20-Poly1305 | 32 | 12 | 16 |
+| XChaCha20-Poly1305 | 32 | 24 | 16 |
+| AES-GCM | 16, 24 or 32 | Any but 0, 12 recommended | 16 |
+| ChaCha20 on its own | 16 or 32 | 12 | |
+| XChaCha20 on its own | 16 or 32 | 24 | |
+
+The ciphertext is always the same length as the message.
+
+## Keys and MACs
+
+| | Bytes |
+| --- | ---: |
+| Keyed BLAKE3 key | 32 |
+| BLAKE2b key | 1 to 64 |
+| Poly1305 key | 32 |
+| HMAC, KMAC and HKDF keys | Any |
+
+## Ed25519 and X25519
+
+| | Bytes |
+| --- | ---: |
+| Secret key | 32 |
+| Public key | 32 |
+| Ed25519 signature | 64 |
+| X25519 shared secret | 32 |
+
+## ML-KEM
+
+| Level | Public key | Secret key | Ciphertext | Shared secret |
+| --- | ---: | ---: | ---: | ---: |
+| ML-KEM-512 | 800 | 1,632 | 768 | 32 |
+| ML-KEM-768 | 1,184 | 2,400 | 1,088 | 32 |
+| ML-KEM-1024 | 1,568 | 3,168 | 1,568 | 32 |
+
+`KeyGen` takes two 32 byte seeds, and `Encapsulate` takes a 32 byte message.
+
+## ML-DSA
+
+| Level | Public key | Secret key | Signature |
+| --- | ---: | ---: | ---: |
+| ML-DSA-44 | 1,312 | 2,560 | 2,420 |
+| ML-DSA-65 | 1,952 | 4,032 | 3,309 |
+| ML-DSA-87 | 2,592 | 4,896 | 4,627 |
+
+The key seed and the signing randomness are 32 bytes each, and a context is up to 255.
+
+## Encoding
+
+| | Size |
+| --- | --- |
+| Base64 | 4 characters for every 3 bytes, rounded up. |
+| Hex | 2 characters for every byte. |

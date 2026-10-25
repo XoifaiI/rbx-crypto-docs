@@ -1,0 +1,83 @@
+---
+title: Hashing
+description: Turn any amount of data into a short fingerprint, and pick the hash for the job.
+---
+
+A hash turns a message of any length into a short, fixed length fingerprint. The same message always gives the same hash, and changing even one bit of the message gives a completely different one. Nobody can work backwards from a hash to the message, or find a second message with the same hash.
+
+Use a hash to check that data arrived in one piece, to name data by its contents, or as a step in something bigger, like a signature.
+
+## Hashing a message
+
+Every hash function gives back the hex string, then the bytes as a buffer:
+
+```luau
+local Hashing = Cryptography.Hashing
+
+local Hex: string, Digest: buffer = Hashing.SHA2.SHA256(buffer.fromstring("Hello World"))
+```
+
+If you only want the buffer, skip the hex: `local _, Digest = Hashing.SHA2.SHA256(Message)`. BLAKE3 and BLAKE2b also have `DigestBuffer`, which only gives the buffer and doesn't spend time making the hex.
+
+## The hashes
+
+| Hash | Function | Digest |
+| --- | --- | --- |
+| SHA-224 | `Hashing.SHA2.SHA224(Message)` | 28 bytes |
+| SHA-256 | `Hashing.SHA2.SHA256(Message)` | 32 bytes |
+| SHA-384 | `Hashing.SHA2.SHA384(Message)` | 48 bytes |
+| SHA-512 | `Hashing.SHA2.SHA512(Message)` | 64 bytes |
+| SHA3-224 | `Hashing.SHA3.SHA3_224(Message)` | 28 bytes |
+| SHA3-256 | `Hashing.SHA3.SHA3_256(Message)` | 32 bytes |
+| SHA3-384 | `Hashing.SHA3.SHA3_384(Message)` | 48 bytes |
+| SHA3-512 | `Hashing.SHA3.SHA3_512(Message)` | 64 bytes |
+| SHAKE128 | `Hashing.SHA3.SHAKE128(Message, OutputBytes)` | Any length you ask for |
+| SHAKE256 | `Hashing.SHA3.SHAKE256(Message, OutputBytes)` | Any length you ask for |
+| BLAKE3 | `Hashing.Blake3.Digest(Message, Length?)` | 32 bytes, or any length you ask for |
+| BLAKE2b | `Hashing.Blake2b.Digest(Message, Length?, Key?)` | 64 bytes, or 1 to 64 that you ask for |
+| MD5 | `Hashing.MD5(Message, Salt?)` | 16 bytes |
+| SHA-1 | `Hashing.SHA1(Message, Salt?)` | 20 bytes |
+
+## Picking one
+
+- **BLAKE3** is the fastest. On Roblox it hashes 50 KB in 8 μs. Use it when nothing outside your game needs to check the hash.
+- **SHA-256** is what other systems expect. Use it when a web server, a database or another library has to compute the same hash.
+- **SHA-512** gives a 64 byte digest. Ed25519 uses it inside.
+- **SHA-3** is a different design from SHA-2. Use it when a standard asks for it.
+- **BLAKE2b** is fast, and takes a key of its own for keyed hashing.
+- **MD5 and SHA-1 are broken.** Someone can make two messages with the same hash. Only use them to talk to an old system that needs them, or as a checksum where nobody is trying to fool you.
+
+## Roblox's own hashing
+
+On Roblox, some of these go through `EncodingService`, which runs as native code inside the engine:
+
+| Hash | When |
+| --- | --- |
+| SHA-256, SHA-1, MD5 | Always. |
+| BLAKE3 | `Digest` and `DigestBuffer` with no length, or a length of 32. |
+| BLAKE2b | `Digest` and `DigestBuffer` with a length of exactly 32 and no key. |
+
+Everything else runs in Luau. The result is the same either way. Outside Roblox, where there's no `EncodingService`, everything runs in Luau, so the library also works in Lune or the Luau command line.
+
+## Longer outputs
+
+SHAKE128, SHAKE256 and BLAKE3 can give as many bytes as you ask for:
+
+```luau
+local _, Bytes: buffer = Hashing.SHA3.SHAKE256(Message, 100)  -- 100 bytes
+local _, Long: buffer = Hashing.Blake3.Digest(Message, 64)     -- 64 bytes
+```
+
+Asking BLAKE3 for a longer output gives the shorter one plus more bytes: the first 32 bytes of a 64 byte BLAKE3 hash are the 32 byte hash.
+
+## Salts
+
+`MD5` and `SHA1` take an optional salt, which is added to the end of the message before hashing. The other hashes don't take one. To hash with a secret, use a keyed hash or HMAC instead. See [Message authentication](/docs/learn/authentication).
+
+## Passwords
+
+Every hash here is fast, which is right for almost every job and wrong for a password a person chose. Someone with the hash can try billions of common passwords a second.
+
+If the passwords are made by your game with the [random number generator](/docs/learn/random), at 24 characters or more, there are too many to try, and a fast hash with a random salt is fine. The `Password` example in the repository does this with keyed BLAKE3.
+
+Next: [Message authentication](/docs/learn/authentication)

@@ -1,0 +1,58 @@
+---
+title: Key exchange
+description: Agree on a secret key with X25519, without ever sending it, and turn it into keys you can use.
+---
+
+Two sides that have never met can agree on a secret key over a channel anyone can read. Each makes a key pair and sends the other its public key. Each combines its own secret key with the other's public key, and both get the same 32 byte shared secret. Someone who saw both public keys still can't work it out.
+
+## Making a key pair
+
+X25519 lives on EdDSA:
+
+```luau
+local X25519 = Cryptography.Verification.EdDSA.X25519
+local CSPRNG = Cryptography.Utilities.CSPRNG
+
+local SecretKey: buffer = CSPRNG.RandomBytes(32)
+local PublicKey: buffer = X25519.PublicKey(SecretKey)
+```
+
+X25519 keys are not Ed25519 keys, even though both are 32 bytes. Use `X25519.PublicKey` for a key you exchange with, and `EdDSA.PublicKey` for a key you sign with.
+
+## Exchanging
+
+Send your public key, get theirs, and combine:
+
+```luau
+local SharedSecret: buffer = X25519.Exchange(SecretKey, TheirPublicKey)
+```
+
+The other side calls `Exchange` with its secret key and your public key, and gets the same 32 bytes.
+
+If the public key you're given is one of the few that would make the shared secret all zeros, `Exchange` errors instead of giving you a secret anyone could guess.
+
+## Using the shared secret
+
+Don't use the shared secret as a key directly. Turn it into a key with [HKDF or BLAKE3's DeriveKey](/docs/learn/authentication#turning-one-key-into-many), and mix in both public keys, so the key is tied to this exchange:
+
+```luau
+local Hashing = Cryptography.Hashing
+local Concatenate = Cryptography.Utilities.Concatenate
+
+local DeriveSessionKey = Hashing.Blake3.DeriveKey(buffer.fromstring("MyGame 2025-01-01 session key"))
+local _, SessionKey: buffer = DeriveSessionKey(Concatenate(SharedSecret, ClientPublicKey, ServerPublicKey), 32)
+```
+
+Both sides must put the public keys in the same order. Then use `SessionKey` with [ChaCha20-Poly1305](/docs/learn/encryption).
+
+## Knowing who you're talking to
+
+Key exchange on its own doesn't tell you who's on the other side. Someone in the middle could swap both public keys for their own, and agree on one key with each side.
+
+Stop that by signing the public key you exchange with a long term [Ed25519](/docs/learn/signatures) key the other side already trusts, and checking the signature on the one you get.
+
+## New keys every session
+
+Make a new X25519 key pair for every session, and throw the secret key away when the session ends. Then even if a long term key leaks later, nobody can work out the keys of sessions that already ended. This is called forward secrecy. The `ForwardSecrecy` example in the repository does all of this: signed public keys, a new key pair per session, and a derived session key.
+
+Next: [Post quantum](/docs/learn/post-quantum)

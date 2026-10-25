@@ -1,0 +1,88 @@
+---
+title: Getting started
+description: Install the library, hash your first message, and encrypt and decrypt one.
+---
+
+## Install
+
+Install it with [Wally](https://wally.run):
+
+```toml title="wally.toml"
+[dependencies]
+Cryptography = "daily3014/cryptography@4.0.1"
+```
+
+or with [pesde](https://pesde.dev):
+
+```sh
+pesde add daily3014/cryptography
+```
+
+Or download `Cryptography.rbxm` from the [latest release](https://github.com/daily3014/rbx-cryptography/releases) and drop it into `ReplicatedStorage`.
+
+Put it in `ReplicatedStorage` if both the server and clients use it, or in `ServerScriptService` if only the server does. The examples on these pages require it from `ReplicatedStorage.Cryptography`.
+
+## Hash a message
+
+In a server script:
+
+```luau
+--!strict
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Cryptography = require(ReplicatedStorage.Cryptography)
+local SHA256 = Cryptography.Hashing.SHA2.SHA256
+
+local Message: buffer = buffer.fromstring("Hello World")
+local Hex: string, Digest: buffer = SHA256(Message)
+
+print(Hex) -- a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e
+print(buffer.len(Digest)) -- 32
+```
+
+Press Play, and the hash prints.
+
+Here's what each part does:
+
+- **`Cryptography.Hashing.SHA2.SHA256`** is the SHA-256 function. Every algorithm sits under one of four groups: `Hashing`, `Encryption`, `Verification` and `Utilities`.
+- **`buffer.fromstring`** turns a string into a buffer. Every function takes buffers, not strings.
+- **A hash gives back two values:** the hex string, and the same 32 bytes as a buffer. Use the hex to print or store it, and the buffer to pass it to another function.
+
+## Encrypt a message
+
+Encryption needs a key, which both sides must keep secret, and a nonce, which must be new every time you encrypt with that key:
+
+```luau
+--!strict
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Cryptography = require(ReplicatedStorage.Cryptography)
+local AEAD = Cryptography.Encryption.AEAD
+local CSPRNG = Cryptography.Utilities.CSPRNG
+
+local Key: buffer = CSPRNG.RandomBytes(32)
+local Nonce: buffer = CSPRNG.RandomBytes(12)
+
+local Ciphertext: buffer, Tag: buffer = AEAD.Encrypt(buffer.fromstring("meet at noon"), Key, Nonce)
+
+local Plaintext: buffer? = AEAD.Decrypt(Ciphertext, Key, Nonce, Tag)
+if Plaintext then
+	print(buffer.tostring(Plaintext)) -- meet at noon
+else
+	warn("the message was changed")
+end
+```
+
+- **`CSPRNG.RandomBytes(32)`** makes a key from the library's secure random number generator. Never use `math.random` or `Random.new` for keys. See [Random numbers](/docs/learn/random).
+- **`AEAD.Encrypt`** gives you the ciphertext, and a 16 byte tag that proves nobody changed it. Keep the nonce and the tag with the ciphertext. Neither is secret.
+- **`AEAD.Decrypt`** gives you the plaintext, or `nil` if the ciphertext, the tag or the nonce was changed, or the key is wrong. Always check for `nil` before you use it.
+
+## Everything is typed
+
+Every function is typed in strict mode. Passing a string where a buffer goes is an error in your editor before you press Play, and passing a key of the wrong length errors when it runs, naming the argument:
+
+```text
+Key must be exactly 32 bytes long, got 16 bytes
+```
+
+Next: [Hashing](/docs/learn/hashing)

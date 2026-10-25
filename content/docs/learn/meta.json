@@ -1,0 +1,16 @@
+{
+  "title": "Learn",
+  "pages": [
+    "getting-started",
+    "hashing",
+    "authentication",
+    "encryption",
+    "signatures",
+    "key-exchange",
+    "post-quantum",
+    "random",
+    "encoding",
+    "project-setup",
+    "common-mistakes"
+  ]
+}

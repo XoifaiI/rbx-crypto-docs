@@ -1,0 +1,81 @@
+---
+title: Post quantum
+description: Agree on keys with ML-KEM and sign with ML-DSA, which stay safe against quantum computers.
+---
+
+A large enough quantum computer could break X25519 and Ed25519. ML-KEM and ML-DSA are the replacements NIST standardized in FIPS 203 and FIPS 204, and they stay safe against one. They're bigger and slower than X25519 and Ed25519, so use them when your data needs to stay secret or trusted for many years.
+
+Both live under `Cryptography.Verification`, and each has three security levels. A higher level is safer, slower and bigger.
+
+## ML-KEM
+
+ML-KEM agrees on a 32 byte shared secret, like [key exchange](/docs/learn/key-exchange), but in one direction: one side makes a key pair, and the other side uses its public key to make a secret and a ciphertext. Only the secret key can get the secret back out of the ciphertext.
+
+```luau
+local MlKEM = Cryptography.Verification.MlKEM
+local CSPRNG = Cryptography.Utilities.CSPRNG
+
+-- the receiver
+local PublicKey: buffer, SecretKey: buffer = MlKEM.MLKEM_768.GenerateKeys()
+
+-- the sender, with the receiver's public key
+local Ciphertext: buffer, SharedSecret: buffer = MlKEM.MLKEM_768.Encapsulate(CSPRNG.RandomBytes(32), PublicKey)
+
+-- the receiver, with the ciphertext
+local Recovered: buffer = MlKEM.MLKEM_768.Decapsulate(Ciphertext, SecretKey)
+print(MlKEM.SecretsEqual(SharedSecret, Recovered)) -- true
+```
+
+- **`GenerateKeys`** makes a key pair from the library's random number generator. `KeyGen(D, Z)` does the same from two 32 byte seeds you give it.
+- **`Encapsulate`** takes 32 random bytes and the public key, and gives back the ciphertext to send and the shared secret to keep.
+- **`Decapsulate`** gives back the same shared secret. If the ciphertext was changed, it gives back a different secret, never an error, so the two sides end up with different keys and nothing they encrypt will decrypt.
+- **`SecretsEqual`** compares two secrets in constant time.
+
+| Level | Public key | Secret key | Ciphertext |
+| --- | --- | --- | --- |
+| `MLKEM_512` | 800 bytes | 1,632 bytes | 768 bytes |
+| `MLKEM_768` | 1,184 bytes | 2,400 bytes | 1,088 bytes |
+| `MLKEM_1024` | 1,568 bytes | 3,168 bytes | 1,568 bytes |
+
+The shared secret is 32 bytes at every level. ML-KEM-768 is the usual choice.
+
+### Checking a stored key
+
+`ValidateDecapsulationKey` checks that a secret key wasn't damaged or changed. It doesn't need to run on every call, only once when you load a key from storage or get it from somewhere else:
+
+```luau
+if not MlKEM.MLKEM_768.ValidateDecapsulationKey(SecretKey) then
+	error("the stored key is damaged")
+end
+```
+
+## ML-DSA
+
+ML-DSA signs messages, like [Ed25519](/docs/learn/signatures). You give it a buffer to write the signature into:
+
+```luau
+local MlDSA = Cryptography.Verification.MlDSA
+local CSPRNG = Cryptography.Utilities.CSPRNG
+
+local PublicKey: buffer, SecretKey: buffer = MlDSA.ML_DSA_65.GenerateKeys()
+
+local Context: buffer = buffer.create(0)
+local Signature: buffer = buffer.create(MlDSA.ML_DSA_65.SigByteLen)
+
+local Signed: boolean = MlDSA.ML_DSA_65.Sign(Message, CSPRNG.RandomBytes(32), SecretKey, Context, Signature)
+local Valid: boolean = MlDSA.ML_DSA_65.Verify(Message, PublicKey, Context, Signature)
+```
+
+- **The 32 random bytes** make each signature different. Pass 32 zero bytes, `buffer.create(32)`, to make the same signature every time for the same message.
+- **The context** is up to 255 bytes that tie a signature to one use, like `buffer.fromstring("save file")`. A signature only checks out with the same context it was signed with. Pass an empty buffer if you don't need one.
+- **`Sign`** writes the signature into `Signature`, and gives `false` if it couldn't, such as when the context is longer than 255 bytes.
+
+| Level | Public key | Secret key | Signature |
+| --- | --- | --- | --- |
+| `ML_DSA_44` | 1,312 bytes | 2,560 bytes | 2,420 bytes |
+| `ML_DSA_65` | 1,952 bytes | 4,032 bytes | 3,309 bytes |
+| `ML_DSA_87` | 2,592 bytes | 4,896 bytes | 4,627 bytes |
+
+Each level has its sizes as fields: `PubKeyByteLen`, `SecKeyByteLen` and `SigByteLen`.
+
+Next: [Random numbers](/docs/learn/random)

@@ -1,0 +1,169 @@
+---
+title: API
+description: Every function in the library, what it takes and what it gives back.
+---
+
+Look up what each module has.
+
+```luau
+local Cryptography = require(ReplicatedStorage.Cryptography)
+
+local Hex: string, Digest: buffer = Cryptography.Hashing.SHA2.SHA256(Message)
+```
+
+Every function is typed. Every argument that takes bytes takes a `buffer`. A bad argument errors, naming it: `Key must be exactly 32 bytes long, got 16 bytes`.
+
+## The module
+
+| Member | What it is |
+| --- | --- |
+| `Hashing` | Hashes, MACs and key derivation. |
+| `Encryption` | ChaCha20-Poly1305, XChaCha20-Poly1305 and AES-GCM. |
+| `Verification` | Ed25519, X25519, ML-KEM and ML-DSA. |
+| `Utilities` | The random number generator, encoding and helpers. |
+| `Preload(...Paths)` | Loads algorithms ahead of time. With no paths, loads everything. See [Project setup](/docs/learn/project-setup#loading-ahead-of-time). |
+
+## Hashing
+
+Every hash gives back `(Hex: string, Digest: buffer)`.
+
+| Function | What it does |
+| --- | --- |
+| `SHA2.SHA224(Message)` | SHA-224. 28 bytes. |
+| `SHA2.SHA256(Message)` | SHA-256. 32 bytes. |
+| `SHA2.SHA384(Message)` | SHA-384. 48 bytes. |
+| `SHA2.SHA512(Message)` | SHA-512. 64 bytes. |
+| `SHA3.SHA3_224(Message)` | SHA3-224. 28 bytes. |
+| `SHA3.SHA3_256(Message)` | SHA3-256. 32 bytes. |
+| `SHA3.SHA3_384(Message)` | SHA3-384. 48 bytes. |
+| `SHA3.SHA3_512(Message)` | SHA3-512. 64 bytes. |
+| `SHA3.SHAKE128(Message, OutputBytes)` | SHAKE128, `OutputBytes` long. |
+| `SHA3.SHAKE256(Message, OutputBytes)` | SHAKE256, `OutputBytes` long. |
+| `Blake3.Digest(Message, Length?)` | BLAKE3. 32 bytes, or `Length`. |
+| `Blake3.DigestBuffer(Message, Length?)` | The same, giving only the buffer. |
+| `Blake3.DigestKeyed(Message, Key, Length?)` | Keyed BLAKE3. `Key` is 32 bytes. |
+| `Blake3.DeriveKey(Context)` | Gives back a function, `(Material, Length?) -> (string, buffer)`, that derives keys for this context. |
+| `Blake2b.Digest(Message, Length?, Key?)` | BLAKE2b. 64 bytes, or `Length` from 1 to 64. `Key` is 1 to 64 bytes. |
+| `Blake2b.DigestBuffer(Message, Length?, Key?)` | The same, giving only the buffer. |
+| `MD5(Message, Salt?)` | MD5. 16 bytes. `Salt` is added to the end of the message. |
+| `SHA1(Message, Salt?)` | SHA-1. 20 bytes. `Salt` is added to the end of the message. |
+
+## MACs and key derivation
+
+| Function | Gives back | What it does |
+| --- | --- | --- |
+| `HMAC(Message, Key, Hash, BlockSize)` | `(string, buffer)` | HMAC with any hash function above. See the [block sizes](/docs/learn/authentication#hmac). |
+| `KMAC.KMAC128(Message, Key, Output, Customization?)` | `(string, buffer)` | KMAC128. Writes `buffer.len(Output)` bytes into `Output`, and gives it back. |
+| `KMAC.KMAC256(Message, Key, Output, Customization?)` | `(string, buffer)` | KMAC256, the same way. |
+| `HKDF(Secret, Salt?, Info?, Length, Hash, BlockSize, DigestSize)` | `buffer` | HKDF. At most 255 times `DigestSize` bytes. |
+
+All of these are under `Cryptography.Hashing`.
+
+## Encryption
+
+Under `Cryptography.Encryption`.
+
+| Function | Gives back | What it does |
+| --- | --- | --- |
+| `AEAD.Encrypt(Message, Key, Nonce, ExtraData?, Rounds?, XChaCha?)` | `(Ciphertext: buffer, Tag: buffer)` | ChaCha20-Poly1305. `Key` is 32 bytes, `Nonce` 12, or 24 with `XChaCha` set to `true`. `Rounds` is an even number, 20 by default. |
+| `AEAD.Decrypt(Ciphertext, Key, Nonce, Tag, ExtraData?, Rounds?, XChaCha?)` | `buffer?` | The plaintext, or `nil` if anything was changed. Errors if `Tag` isn't 16 bytes. |
+| `AEAD.ChaCha20(Data, Key, Nonce, Counter?, Rounds?)` | `buffer` | ChaCha20 on its own, with no tag. `Key` is 16 or 32 bytes, `Nonce` 12. |
+| `AEAD.XChaCha20(Data, Key, Nonce, Counter?, Rounds?)` | `buffer` | XChaCha20 on its own, with no tag. `Nonce` is 24 bytes. |
+| `AEAD.Poly1305(Message, Key)` | `buffer` | A 16 byte Poly1305 tag. `Key` is 32 bytes, and must never be used twice. |
+| `AES.Encrypt(Message, Key, IV, ExtraData?)` | `(Ciphertext: buffer, Tag: buffer)` | AES-GCM. `Key` is 16, 24 or 32 bytes. `IV` is any length but 0. Use 12. |
+| `AES.Decrypt(Ciphertext, Key, IV, Tag, ExtraData?)` | `buffer?` | The plaintext, or `nil` if anything was changed, or `Tag` isn't 16 bytes. |
+
+`ChaCha20` and `XChaCha20` encrypt and decrypt the same way: running one on its output with the same key and nonce gives the input back.
+
+## Ed25519 and X25519
+
+Under `Cryptography.Verification.EdDSA`.
+
+| Function | Gives back | What it does |
+| --- | --- | --- |
+| `PublicKey(SecretKey)` | `buffer` | The 32 byte public key for a 32 byte secret key. |
+| `Sign(Message, SecretKey, PublicKey)` | `buffer` | A 64 byte signature. |
+| `Verify(Message, PublicKey, Signature)` | `boolean` | Whether the signature is valid for this message and key. |
+| `X25519.PublicKey(SecretKey)` | `buffer` | The 32 byte X25519 public key for a 32 byte secret key. |
+| `X25519.Exchange(SecretKey, TheirPublicKey)` | `buffer` | The 32 byte shared secret. Errors if it would be all zeros. |
+
+## ML-KEM
+
+Under `Cryptography.Verification.MlKEM`. `MLKEM_512`, `MLKEM_768` and `MLKEM_1024` each have:
+
+| Function | Gives back | What it does |
+| --- | --- | --- |
+| `GenerateKeys()` | `(PublicKey: buffer, SecretKey: buffer)` | A key pair from the random number generator. |
+| `KeyGen(D, Z)` | `(PublicKey: buffer, SecretKey: buffer)` | A key pair from two 32 byte seeds. |
+| `Encapsulate(Message, PublicKey)` | `(Ciphertext: buffer, SharedSecret: buffer)` | `Message` is 32 random bytes. |
+| `Decapsulate(Ciphertext, SecretKey)` | `buffer` | The shared secret. A changed ciphertext gives a different secret, not an error. |
+| `ValidateDecapsulationKey(SecretKey)` | `boolean` | Whether a secret key is undamaged. |
+
+| Member | What it is |
+| --- | --- |
+| `MlKEM.SecretsEqual(A, B)` | Compares two shared secrets in constant time. |
+| `MlKEM.CSPRNG` | The same random number generator as `Utilities.CSPRNG`. |
+
+## ML-DSA
+
+Under `Cryptography.Verification.MlDSA`. `ML_DSA_44`, `ML_DSA_65` and `ML_DSA_87` each have:
+
+| Member | What it does |
+| --- | --- |
+| `GenerateKeys()` | Gives back `(PublicKey: buffer, SecretKey: buffer)` from the random number generator. |
+| `KeyGen(Seed, PublicKey, SecretKey)` | Writes a key pair from a 32 byte seed into two buffers of `PubKeyByteLen` and `SecKeyByteLen` bytes. |
+| `Sign(Message, Random, SecretKey, Context, Signature)` | Writes a signature into `Signature`, a buffer of `SigByteLen` bytes. `Random` is 32 bytes, all zeros to sign the same way every time. `Context` is up to 255 bytes. Gives `false` if it couldn't sign. |
+| `Verify(Message, PublicKey, Context, Signature)` | Gives back whether the signature is valid for this message, key and context. |
+| `SignInternal(MessagePrime, Random, SecretKey, Signature)` | FIPS 204's internal signing, on an already encoded message. |
+| `SignMu(Mu, Random, SecretKey, Signature)` | Signs a 64 byte message representative you computed yourself. |
+| `PubKeyByteLen`, `SecKeyByteLen`, `SigByteLen` | The sizes of a public key, a secret key and a signature. |
+| `KeygenSeedByteLen`, `SigningSeedByteLen` | The sizes of `Seed` and `Random`, 32 bytes each. |
+
+`MlDSA.CSPRNG` is the same random number generator as `Utilities.CSPRNG`.
+
+## Random numbers
+
+Under `Cryptography.Utilities.CSPRNG`.
+
+| Function | Gives back | What it does |
+| --- | --- | --- |
+| `RandomBytes(Count)` | `buffer` | `Count` random bytes. |
+| `Random()` | `number` | From 0 up to, not including, 1. |
+| `RandomInt(Min, Max?)` | `number` | A whole number from `Min` to `Max`, both included. With one argument, from 1 to it. |
+| `RandomNumber(Min, Max?)` | `number` | A number from `Min` to `Max`. With one argument, from 0 to it. |
+| `RandomHex(Length)` | `string` | `Length` hex characters. `Length` must be even. |
+| `RandomString(Length, AsBuffer?)` | `string` or `buffer` | `Length` characters from `$` to `z`. |
+| `MakeRandomString(Characters)` | `(Length, AsBuffer?) -> string \| buffer` | A function that makes strings from your characters. |
+| `AddEntropy(Bytes?)` | | Mixes in your own bytes, or new GUIDs with none. |
+
+## Encoding
+
+Under `Cryptography.Utilities`.
+
+| Function | Gives back | What it does |
+| --- | --- | --- |
+| `Base64.Encode(Data)` | `buffer` | Base64 text, as a buffer. |
+| `Base64.Decode(Data)` | `buffer` | The bytes. |
+| `Conversions.ToHex(Data)` | `string` | Two hex characters per byte. |
+| `Conversions.FromHex(Hex)` | `buffer` | The bytes, from a string or buffer of even length. |
+| `XOR(Data, Key)` | `buffer` | `Data` combined with `Key`, repeating `Key`. Not encryption. |
+| `Concatenate(...Buffers)` | `buffer` | The buffers joined into one. |
+
+## Constant time helpers
+
+Under `Cryptography.Utilities`. A mask is `0xFFFFFFFF` for true and `0` for false. A condition bit is `1` or `0`.
+
+| Function | Gives back | What it does |
+| --- | --- | --- |
+| `CtCompare(A, B)` | `boolean` | Whether two buffers hold the same bytes. `false` if their lengths differ. |
+| `CtCompareMask(A, B)` | `number` | The same, as a mask. |
+| `CtIsAllZero(Buffer)` | `boolean` | Whether every byte is 0. |
+| `CtEqMask(A, B)` | `number` | A mask of whether two numbers are equal. |
+| `CtLtMask(A, B)` | `number` | A mask of whether `A` is less than `B`. |
+| `CtNonZeroMask(X)` | `number` | A mask of whether `X` isn't 0. |
+| `CtIsZeroMask(X)` | `number` | A mask of whether `X` is 0. |
+| `CtSelect(Mask, A, B)` | `number` | `A` if the mask is true, `B` if it's false. |
+| `CtSwap(Bit, A, B)` | `(number, number)` | `A` and `B` swapped if `Bit` is 1. |
+| `CtSwapBuffers(Bit, A, B)` | | Swaps the contents of two buffers if `Bit` is 1. |
+| `CtCopyIf(Bit, Destination, Source)` | | Copies `Source` into `Destination` if `Bit` is 1. |
+| `CtSelectBuffer(Bit, Destination, IfTrue, IfFalse)` | | Copies `IfTrue` into `Destination` if `Bit` is 1, or `IfFalse` if it's 0. |

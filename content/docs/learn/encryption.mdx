@@ -1,0 +1,95 @@
+---
+title: Encryption
+description: Keep data secret with ChaCha20-Poly1305, XChaCha20-Poly1305 or AES-GCM, and know when it was changed.
+---
+
+Encryption turns a message into ciphertext that only someone with the key can turn back. Every cipher here is authenticated: as well as the ciphertext, it gives you a tag, and decrypting checks the tag first. If anyone changed the ciphertext, the tag, the nonce or the extra data, or used the wrong key, decrypting gives you `nil` instead of garbage.
+
+## ChaCha20-Poly1305
+
+ChaCha20-Poly1305 is the one to use unless you have a reason not to. It's the fastest, and it takes the same time whatever the data is, so its timing gives nothing away.
+
+```luau
+local AEAD = Cryptography.Encryption.AEAD
+local CSPRNG = Cryptography.Utilities.CSPRNG
+
+local Key: buffer = CSPRNG.RandomBytes(32)
+local Nonce: buffer = CSPRNG.RandomBytes(12)
+
+local Ciphertext: buffer, Tag: buffer = AEAD.Encrypt(Message, Key, Nonce)
+local Plaintext: buffer? = AEAD.Decrypt(Ciphertext, Key, Nonce, Tag)
+```
+
+| Part | Size | What it is |
+| --- | --- | --- |
+| Key | 32 bytes | The secret. Both sides need it, and nobody else can have it. |
+| Nonce | 12 bytes | A number used once. It doesn't have to be secret, but it must never repeat with the same key. |
+| Tag | 16 bytes | Proof that nothing was changed. Not secret. |
+
+The ciphertext is the same length as the message. Send or store the nonce and the tag with it, and the other side gives all three back to `Decrypt`.
+
+## Nonces
+
+Encrypting two messages with the same key and the same nonce leaks how the two messages differ, which is often enough to read both, and lets anyone forge new ones. There are two safe ways to pick nonces:
+
+- **Count.** Keep a counter for each key, and write it into the nonce: `buffer.writeu32(Nonce, 0, Counter)`. Never reset it while the key is in use.
+- **Pick at random.** With random 12 byte nonces, change the key before you've encrypted 2^32 messages with it, about 4 billion, so a repeat stays vanishingly unlikely. XChaCha20 takes a 24 byte nonce, which you can pick at random for as many messages as you like.
+
+## XChaCha20-Poly1305
+
+Pass `true` as the last argument, and a 24 byte nonce:
+
+```luau
+local Nonce: buffer = CSPRNG.RandomBytes(24)
+
+local Ciphertext: buffer, Tag: buffer = AEAD.Encrypt(Message, Key, Nonce, nil, nil, true)
+local Plaintext: buffer? = AEAD.Decrypt(Ciphertext, Key, Nonce, Tag, nil, nil, true)
+```
+
+The two `nil`s are the extra data and the rounds, below.
+
+## Extra data
+
+Extra data is checked by the tag, but not encrypted. Use it for anything the other side needs to read before decrypting, but that nobody should be able to change, like who a message is for:
+
+```luau
+local ExtraData: buffer = buffer.fromstring(`player:{Player.UserId}`)
+local Ciphertext: buffer, Tag: buffer = AEAD.Encrypt(Message, Key, Nonce, ExtraData)
+local Plaintext: buffer? = AEAD.Decrypt(Ciphertext, Key, Nonce, Tag, ExtraData)
+```
+
+If the extra data given to `Decrypt` isn't exactly what was given to `Encrypt`, `Decrypt` gives `nil`.
+
+## Rounds
+
+ChaCha20 runs 20 rounds unless you say otherwise. The fifth argument sets a different even number, like 12 or 8, which is faster and leaves less of a safety margin. Both sides must use the same number.
+
+## AES-GCM
+
+AES-GCM is the standard most other systems speak. Use it when something outside Roblox has to decrypt your data, or encrypt data for you:
+
+```luau
+local AES = Cryptography.Encryption.AES
+
+local Key: buffer = CSPRNG.RandomBytes(32)
+local IV: buffer = CSPRNG.RandomBytes(12)
+
+local Ciphertext: buffer, Tag: buffer = AES.Encrypt(Message, Key, IV, ExtraData)
+local Plaintext: buffer? = AES.Decrypt(Ciphertext, Key, IV, Tag, ExtraData)
+```
+
+The key is 16, 24 or 32 bytes, for AES-128, AES-192 or AES-256. The IV is AES-GCM's nonce, with the same rule: never repeat it with the same key. Use 12 bytes. The tag is 16 bytes, and the extra data is optional.
+
+AES-GCM is safe to use, but ChaCha20-Poly1305 is the better default:
+
+- **Its nonces are short.** With random IVs, change the key before 2^32 messages, the same as ChaCha20-Poly1305 with a 12 byte nonce. There's no 24 byte version.
+- **One ciphertext can decrypt under two keys.** Someone who picks both keys can make a ciphertext that decrypts to a different message under each. That matters when more than one key could be used, like in a group chat.
+- **Its lookup tables could leak through timing**, on systems where an attacker can measure cache timing very precisely. That isn't practical from a Roblox script.
+
+## When decrypting fails
+
+`Decrypt` gives `nil` when the ciphertext, the tag, the nonce or the extra data was changed, or the key is wrong. It doesn't say which, on purpose.
+
+A tag that isn't 16 bytes long makes `AEAD.Decrypt` error, and makes `AES.Decrypt` give `nil`.
+
+Next: [Signatures](/docs/learn/signatures)

@@ -1,0 +1,40 @@
+---
+title: Signatures
+description: Sign a message with Ed25519 so anyone can check who wrote it, and check many at once.
+---
+
+A signature proves who wrote a message. You sign with a secret key that only you have, and anyone with your public key can check the signature. Unlike a [MAC](/docs/learn/authentication), the people checking can't make signatures of their own, since they only have the public key.
+
+Use signatures when many people need to check a message, but only one should be able to write it: a ticket the server hands a player to show another server, a save file, an announcement from your web server.
+
+## Making a key pair
+
+A secret key is 32 random bytes. The public key comes from it:
+
+```luau
+local EdDSA = Cryptography.Verification.EdDSA
+local CSPRNG = Cryptography.Utilities.CSPRNG
+
+local SecretKey: buffer = CSPRNG.RandomBytes(32)
+local PublicKey: buffer = EdDSA.PublicKey(SecretKey)
+```
+
+Keep the secret key secret. Hand the public key to anyone who needs to check your signatures. It's 32 bytes too.
+
+## Signing and checking
+
+```luau
+local Message: buffer = buffer.fromstring("Player 1234 may join the tournament")
+
+local Signature: buffer = EdDSA.Sign(Message, SecretKey, PublicKey)
+local Valid: boolean = EdDSA.Verify(Message, PublicKey, Signature)
+```
+
+- **`Sign`** takes the public key as well as the secret key, so it doesn't have to work it out again for every message. It gives back a 64 byte signature.
+- **`Verify`** gives `true` only if the signature was made by that public key's secret key, for exactly this message.
+
+Signing the same message twice gives the same signature, so you don't need random numbers to sign.
+
+The message can be any length. Ed25519 hashes it with SHA-512 twice to sign, and once to check, so a long message costs about as much as hashing it: on Roblox, signing 50 KB takes about 1 ms, and a 100 byte message about 58 μs.
+
+Next: [Key exchange](/docs/learn/key-exchange)

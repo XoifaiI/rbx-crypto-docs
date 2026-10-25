@@ -1,0 +1,65 @@
+---
+title: Encoding
+description: Base64 and hex for turning bytes into text, and the small tools that go with the rest of the library.
+---
+
+Keys, hashes and ciphertext are raw bytes, and most of them aren't printable. To store them in a DataStore or send them to a web server as text, encode them first.
+
+## Base64
+
+```luau
+local Base64 = Cryptography.Utilities.Base64
+
+local Encoded: buffer = Base64.Encode(Ciphertext)
+local Decoded: buffer = Base64.Decode(Encoded)
+```
+
+Both take a buffer and give back a buffer. Use `buffer.tostring(Encoded)` to get the text. Base64 makes data a third bigger.
+
+On Roblox, Base64 goes through `EncodingService`. Decoding text that isn't valid Base64 errors there.
+
+## Hex
+
+```luau
+local Conversions = Cryptography.Utilities.Conversions
+
+local Hex: string = Conversions.ToHex(Key)       -- two characters per byte
+local Bytes: buffer = Conversions.FromHex(Hex)   -- back to bytes
+```
+
+`FromHex` takes a string or a buffer of an even length. Hex is twice the size of the bytes, so Base64 is smaller, but hex is easier to read.
+
+## Joining buffers
+
+`Concatenate` joins any number of buffers into one:
+
+```luau
+local Joined: buffer = Cryptography.Utilities.Concatenate(Nonce, Ciphertext, Tag)
+```
+
+## Comparing secrets
+
+`CtCompare` checks whether two buffers hold the same bytes, and takes the same time however many of them match. Use it for every MAC, tag or token you check:
+
+```luau
+if Cryptography.Utilities.CtCompare(Expected, Received) then
+	-- they match
+end
+```
+
+It gives `false` for buffers of different lengths. The other constant time helpers, like `CtSelect` and `CtSwapBuffers`, are listed in the [API](/docs/reference/api#constant-time-helpers). They're for writing cryptographic code of your own.
+
+## XOR
+
+`XOR` combines a buffer with a key, byte by byte, and repeats the key if it's shorter:
+
+```luau
+local XOR = Cryptography.Utilities.XOR
+
+local Scrambled: buffer = XOR(Message, Key)
+local Back: buffer = XOR(Scrambled, Key)
+```
+
+XOR is not encryption. Anyone who knows or guesses part of the message can work out the key, and nothing tells you if the data was changed. It's only safe as a one time pad, with a random key as long as the message that's never used again. For anything else, use [ChaCha20-Poly1305](/docs/learn/encryption).
+
+Next: [Project setup](/docs/learn/project-setup)

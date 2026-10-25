@@ -1,0 +1,40 @@
+---
+title: Overview
+description: rbx-cryptography is cryptography for Roblox in strictly typed Luau, as fast as Luau can run it.
+---
+
+rbx-cryptography is a cryptography library for Roblox. It hashes, encrypts, signs and makes random numbers, in strictly typed Luau that's been tuned against the native code it compiles to.
+
+```luau
+local Cryptography = require(ReplicatedStorage.Cryptography)
+
+local Hex: string = Cryptography.Hashing.SHA2.SHA256(buffer.fromstring("Hello World"))
+print(Hex) -- a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e
+```
+
+Everything takes buffers and gives back buffers. A hash also gives you its hex string, first, since that's what you usually print or store.
+
+## What it's for
+
+| Job | What you get |
+| --- | --- |
+| Hashing | SHA-2, SHA-3, BLAKE3 and BLAKE2b, plus MD5 and SHA-1 for old systems that need them. |
+| Proving a message wasn't changed | HMAC, KMAC and keyed BLAKE3. |
+| Encryption | ChaCha20-Poly1305, XChaCha20-Poly1305 and AES-GCM, which also tell you when data was changed. |
+| Signatures | Ed25519, which proves who wrote a message. |
+| Agreeing on a key | X25519, so two sides get the same key without ever sending it. |
+| Post quantum | ML-KEM for keys and ML-DSA for signatures, which stay safe against quantum computers. |
+| Random numbers | A random number generator that's safe for keys, nonces and tokens. |
+| Encoding | Base64 and hex. |
+
+## What it isn't for
+
+- **Hiding things from a client.** Anything a client's code can see, an exploiter can read, keys included. Encryption on a client protects data from everyone except the player running it. See [Common mistakes](/docs/learn/common-mistakes#keeping-a-secret-key-on-the-client).
+- **Making a client honest.** A client that signs or encrypts what it sends still holds the key it used, so an exploiter can sign or encrypt anything they like. The server still has to check every request against your game's rules.
+- **Storing passwords people choose.** Every hash here is fast, which is what you want for most jobs and what you don't want for a password a person picked. See [Hashing](/docs/learn/hashing#passwords).
+
+## Where to start
+
+The Learn pages start with installing the library and hashing your first message. Each page covers one job. Start at the top, then read the pages for the jobs you have.
+
+Next: [Getting started](/docs/learn/getting-started)

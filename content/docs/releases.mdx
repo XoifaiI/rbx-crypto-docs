@@ -1,0 +1,55 @@
+---
+title: Releases
+description: What changed in each version of rbx-cryptography, and what you have to change with it.
+---
+
+`+` is new, `~` works differently now, `-` is gone, `!` is something to know before you upgrade.
+
+## 4.0.1
+```diff
++ Fixed type errors from lsp being outdated
+```
+
+## 4.0.0
+
+```diff
++ Almost every algorithm is faster. In Luau, SHA-256 is about 4.6 times faster, SHA-1 about 14, MD5 about 9, BLAKE3 about 3.9, AES-GCM about 4, ChaCha20 about 2.9 and ML-DSA-65 signing about 8
++ X25519 is about 6 times faster, ML-KEM-768 about 4 to 5, and Ed25519 signing about 1.8
++ On Roblox, SHA-256, SHA-1, MD5 and Base64 go through EncodingService, and so do BLAKE3 and BLAKE2b for unkeyed 32 byte digests
++ Every algorithm loads the first time you use it, so requiring the library takes about 2 ms
++ Cryptography.Preload(...) loads algorithms ahead of time
++ The Luau code EncodingService replaces never loads on Roblox
++ X25519.PublicKey(SecretKey) and X25519.Exchange(SecretKey, TheirPublicKey)
++ Blake3.DigestBuffer and Blake2b.DigestBuffer, which only give the buffer
++ Constant time helpers in Utilities: CtCompare, CtSelect, CtSwap, CtSelectBuffer and more
++ Utilities.Concatenate
+~ The random number generator seeds from HttpService GUIDs, makes its output with keyed BLAKE3, and replaces its key after every 2 KB
+~ CSPRNG.AddEntropy only ever mixes bytes in, so bytes that aren't random can't make it weaker
+~ ML-KEM Decapsulate gives a different secret for a changed ciphertext or a bad key, instead of erroring
+~ AES-GCM checks the tag before it decrypts anything
+~ X25519.Exchange errors on a public key that would give an all zero shared secret
+~ HMAC and HKDF give the right result with SHA-256 and every other hash. They were wrong by default for everything but SHA-384 and SHA-512
+~ KMAC with no customization string matches the standard
+~ BLAKE2b's buffer is right for lengths that aren't a multiple of 4
+~ Poly1305 gives the right tag for an empty message
+~ ChaCha20-Poly1305 encrypts empty messages
+- The salt argument of the SHA-2 hashes. Use HMAC
+- The masked X25519 API: Mask, MaskSignature, Remask, MaskComponent and 64 byte masked keys
+- CSPRNG.Ed25519Random, Ed25519ClampedBytes, Reseed, AddEntropyProvider, RemoveEntropyProvider and BytesLeft
+- EdDSA.CSPRNG. Use Utilities.CSPRNG
+- Simon, Speck, Adler-32, CRC32, MurmurHash3 and XXH32
+- Utilities.RandomString. Use CSPRNG.RandomString
+! SHA-384 and SHA-512 give their bytes in the standard order. They used to be little endian words
+! SHA-1 gives (Hex, Buffer) like every other hash
+! HMAC and HKDF ignore their BigEndian argument
+! Blake2b is a table: call Blake2b.Digest(Message, Length?, Key?)
+! AES.Decrypt gives the plaintext, or nil. It used to give (boolean, buffer?)
+! XOR moved from Encryption to Utilities
+! Ed25519 and X25519 secret keys are just CSPRNG.RandomBytes(32)
+```
+
+To upgrade, see [Encryption](/docs/learn/encryption#aes-gcm) for the new `AES.Decrypt`, and [Key exchange](/docs/learn/key-exchange) for the new X25519.
+
+## 3.1.4 and before
+
+See the [releases on GitHub](https://github.com/daily3014/rbx-cryptography/releases).

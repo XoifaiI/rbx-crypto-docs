@@ -1,0 +1,53 @@
+---
+title: Project setup
+description: Where to put the library, how it loads, and loading it ahead of time.
+---
+
+## Where to put it
+
+| Place | When |
+| --- | --- |
+| `ReplicatedStorage` | Both the server and clients use it. |
+| `ServerScriptService` or `ServerStorage` | Only the server uses it. Clients can't see it at all. |
+
+The library is the same everywhere. What changes is who can read the keys you use with it. See [Common mistakes](/docs/learn/common-mistakes#keeping-a-secret-key-on-the-client).
+
+## Loading on first use
+
+Requiring the library takes about 2 ms, since it doesn't load any algorithm yet. Each one loads the first time you touch it:
+
+```luau
+local Cryptography = require(ReplicatedStorage.Cryptography) -- nothing loaded yet
+
+local SHA256 = Cryptography.Hashing.SHA2.SHA256 -- SHA-256 loads here
+```
+
+Loading an algorithm compiles its code to native code, which can take a while for the big ones. On a Roblox server, BLAKE2b's Luau code takes about 105 ms the first time, and BLAKE3's about 66 ms. Every time after that is free.
+
+When `EncodingService` can do the work, the Luau code it replaces never loads at all. SHA-256, SHA-1, MD5 and Base64 never load their Luau code on Roblox. BLAKE3 and BLAKE2b only load theirs the first time you call them with a key or a length `EncodingService` can't do.
+
+The groups are read only. Assigning to `Cryptography.Hashing.SHA256` errors, and so does reading an algorithm that doesn't exist.
+
+## Loading ahead of time
+
+To pay the loading cost while your game starts instead of in the middle of a round, call `Preload`:
+
+```luau
+Cryptography.Preload() -- every algorithm
+
+Cryptography.Preload("Encryption", "Verification/EdDSA") -- one group, and one algorithm
+```
+
+Each path names a group, like `"Hashing"` or `"Encryption"`, or one algorithm in it, like `"Hashing/SHA3"` or `"Hashing/SHA2/SHA256"`. A group loads everything in it.
+
+`Preload` loads the modules your scripts use. The Luau code that BLAKE3 and BLAKE2b only need for keys and other lengths still loads on its first use.
+
+## Outside Roblox
+
+The library runs anywhere Luau runs, like Lune or the Luau command line. Without `EncodingService` and `HttpService`, the hashes that use them run in Luau instead, and the random number generator seeds from clock timing. Every result is the same.
+
+## Updating
+
+Change the version in `wally.toml`, or run `pesde update`, or replace the model with the one from the newest release. Read [Releases](/docs/releases) first: anything you have to change in your code is listed there with a `!`.
+
+Next: [Common mistakes](/docs/learn/common-mistakes)
