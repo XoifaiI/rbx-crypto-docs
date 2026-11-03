@@ -35,6 +35,6 @@ local Valid: boolean = EdDSA.Verify(Message, PublicKey, Signature)
 
 Signing the same message twice gives the same signature, so you don't need random numbers to sign.
 
-The message can be any length. Ed25519 hashes it with SHA-512 twice to sign, and once to check, so a long message costs about as much as hashing it: on Roblox, signing 50 KB takes about 1 ms, and a 100 byte message about 58 μs.
+The message can be any length. Ed25519 hashes it with SHA-512 twice to sign, and once to check, so a long message costs about as much as hashing it: on Roblox, SHA-512 runs at about 142 MB/s, and signing a 64 byte message takes about 39 μs.
 
 Next: [Key exchange](/docs/learn/key-exchange)

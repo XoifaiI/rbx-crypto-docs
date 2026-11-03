@@ -31,7 +31,7 @@ local Hex: string, Mac: buffer = Hashing.HMAC(Message, Key, Hashing.SHA2.SHA256,
 | BLAKE2b (`Blake2b.Digest`) | 128 |
 | MD5, SHA-1 | 64 |
 
-HMAC with BLAKE3 is the fastest: on Roblox it does 50 KB in 26 μs, against 142 μs with SHA-256.
+HMAC with BLAKE3 is the fastest: on Roblox it does about 1,530 MB/s, against about 443 MB/s with SHA-256.
 
 ## One key, many messages
 

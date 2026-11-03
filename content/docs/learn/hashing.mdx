@@ -40,7 +40,7 @@ If you only want the buffer, skip the hex: `local _, Digest = Hashing.SHA2.SHA25
 
 ## Picking one
 
-- **BLAKE3** is the fastest. On Roblox it hashes 50 KB in 8 μs. Use it when nothing outside your game needs to check the hash.
+- **BLAKE3** is the fastest. On Roblox it hashes at about 2,420 MB/s. Use it when nothing outside your game needs to check the hash.
 - **SHA-256** is what other systems expect. Use it when a web server, a database or another library has to compute the same hash.
 - **SHA-512** gives a 64 byte digest. Ed25519 uses it inside.
 - **SHA-3** is a different design from SHA-2. Use it when a standard asks for it.
