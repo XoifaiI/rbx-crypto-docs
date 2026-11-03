@@ -26,7 +26,7 @@ export const TESTS: Test[] = [
       row("HashLib", 769.63),
       row("Dekkonot", 775.58),
       row("CryptographyService", 1237.17),
-      row("Gamer", 4941.96),
+      row("Gamer", 1057.03),
     ],
   },
   {
@@ -76,7 +76,7 @@ export const TESTS: Test[] = [
       row("rbx-cryptography SHA-256", 115.67),
       row("HashLib SHA-256", 787.15),
       row("CryptographyService SHA-256", 1245.67),
-      row("Gamer SHA-256", 4974.8),
+      row("Gamer SHA-256", 1069.6),
     ],
   },
   {
@@ -107,14 +107,14 @@ export const TESTS: Test[] = [
     bytes: KB_50,
     rows: [
       row("rbx-cryptography", 341.4),
-      row("RobloxGamerPro200007 (CTR, no authentication)", 9945.7),
+      row("RobloxGamerPro200007 (CTR, no authentication)", 878.55),
     ],
   },
   {
     name: "XOR",
     input: "1 MB",
     bytes: MB_1,
-    rows: [row("rbx-cryptography", 405.25), row("Gamer", 13026.56)],
+    rows: [row("rbx-cryptography", 405.25), row("Gamer", 12450.39)],
   },
   {
     name: "Base64 encode and decode",
@@ -124,7 +124,7 @@ export const TESTS: Test[] = [
       row("rbx-cryptography", 67.12),
       row("Reselim", 129.12),
       row("Lute", 238.74),
-      row("Gamer", 2776.8),
+      row("Gamer", 1688.64),
       row("HashLib", 4181.26),
     ],
   },
