@@ -6,76 +6,116 @@ export type Row = {
 export type Test = {
   name: string;
   input: string;
+  bytes?: number;
   rows: Row[];
 };
 
 const row = (library: string, time: number): Row => ({ library, time });
 
+const KB_50 = 51200;
+const MB_1 = 1048576;
+
 export const TESTS: Test[] = [
   {
     name: "SHA-256",
     input: "50 KB",
+    bytes: KB_50,
     rows: [
-      row("rbx-cryptography", 121),
-      row("rbx-cryptography Luau", 128),
-      row("Dekkonot", 916),
-      row("HashLib", 933),
+      row("rbx-cryptography", 102.33),
+      row("rbx-cryptography Luau", 135.42),
+      row("HashLib", 776.57),
+      row("CryptographyService", 1242.67),
+      row("Gamer", 4993.41),
     ],
   },
   {
     name: "SHA-512",
     input: "50 KB",
+    bytes: KB_50,
     rows: [
-      row("rbx-cryptography", 453),
-      row("HashLib", 1394),
-      row("Dekkonot", 2323),
+      row("rbx-cryptography", 363.42),
+      row("CryptographyService", 1123.41),
+      row("HashLib", 1173.15),
     ],
   },
   {
     name: "SHA3-512",
     input: "50 KB",
-    rows: [row("rbx-cryptography", 554), row("HashLib", 3457)],
+    bytes: KB_50,
+    rows: [
+      row("rbx-cryptography", 467.69),
+      row("HashLib", 2166.42),
+      row("CryptographyService", 14867.68),
+    ],
   },
   {
-    name: "BLAKE2b, 32 byte digest",
+    name: "BLAKE2b",
     input: "50 KB",
+    bytes: KB_50,
     rows: [
-      row("rbx-cryptography", 53),
-      row("rbx-cryptography Luau", 283),
-      row("Dekkonot", 883),
+      row("rbx-cryptography", 40.67),
+      row("rbx-cryptography Luau", 191.02),
+      row("CryptographyService", 2382.58),
     ],
   },
   {
     name: "BLAKE3",
     input: "50 KB",
-    rows: [row("rbx-cryptography", 8), row("rbx-cryptography Luau", 75)],
+    bytes: KB_50,
+    rows: [row("rbx-cryptography", 21.21), row("rbx-cryptography Luau", 52.49)],
   },
   {
     name: "HMAC",
     input: "50 KB",
+    bytes: KB_50,
     rows: [
-      row("rbx-cryptography BLAKE3", 26),
-      row("rbx-cryptography SHA-256", 142),
-      row("HashLib SHA-256", 947),
+      row("rbx-cryptography BLAKE3", 33.44),
+      row("rbx-cryptography SHA-256", 116.24),
+      row("HashLib SHA-256", 793.45),
+      row("CryptographyService SHA-256", 1249.96),
+      row("Gamer SHA-256", 5061.81),
     ],
   },
   {
     name: "ChaCha20",
     input: "50 KB",
+    bytes: KB_50,
     rows: [
-      row("rbx-cryptography", 76),
-      row("MrRoblick", 696),
-      row("EncryptedNet", 12011),
+      row("rbx-cryptography", 69.18),
+      row("Orbit", 144.56),
+      row("CryptographyService", 585.72),
     ],
   },
   {
-    name: "AES",
+    name: "Poly1305",
     input: "50 KB",
-    rows: [row("rbx-cryptography", 365), row("RobloxGamerPro200007", 926)],
+    bytes: KB_50,
+    rows: [
+      row("rbx-cryptography", 27.09),
+      row("Orbit", 98.64),
+      row("CryptographyService", 1847.85),
+    ],
+  },
+  {
+    name: "AES-256-GCM",
+    input: "50 KB",
+    bytes: KB_50,
+    rows: [row("rbx-cryptography", 349.72)],
+  },
+  {
+    name: "XOR",
+    input: "1 MB",
+    bytes: MB_1,
+    rows: [row("rbx-cryptography", 405.9), row("Gamer", 12711.46)],
   },
   {
     name: "Base64 encode and decode",
     input: "50 KB",
-    rows: [row("rbx-cryptography", 128), row("Reselim", 182), row("Lute", 297)],
+    bytes: KB_50,
+    rows: [
+      row("rbx-cryptography", 68.49),
+      row("Gamer", 2817.95),
+      row("HashLib", 4271.41),
+    ],
   },
 ];

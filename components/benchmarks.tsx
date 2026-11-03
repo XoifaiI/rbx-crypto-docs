@@ -20,14 +20,27 @@ const OURS = "rbx-cryptography";
 const ROW_HEIGHT = 24;
 const AXIS_BAND = 28;
 
-const number = new Intl.NumberFormat("en-US");
+const number = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 });
+
+type Point = Row & { value: number };
 
 function ours(library: string): boolean {
   return library.startsWith(OURS);
 }
 
-function sorted(test: Test): Row[] {
-  return [...test.rows].sort((a, b) => a.time - b.time);
+function unit(test: Test): string {
+  return test.bytes === undefined ? "μs" : "MB/s";
+}
+
+function points(test: Test): Point[] {
+  const bytes = test.bytes;
+  const list = test.rows.map((row) => ({
+    ...row,
+    value: bytes === undefined ? row.time : bytes / row.time,
+  }));
+  return list.sort((a, b) =>
+    bytes === undefined ? a.value - b.value : b.value - a.value,
+  );
 }
 
 function Switch<T extends string>({
@@ -96,9 +109,11 @@ function LibraryTick({
 function TestTooltip({
   active,
   payload,
+  suffix,
 }: {
   active?: boolean;
-  payload?: { payload: Row }[];
+  payload?: { payload: Point }[];
+  suffix?: string;
 }) {
   const item = payload?.[0]?.payload;
   if (!active || !item) {
@@ -107,7 +122,7 @@ function TestTooltip({
   return (
     <div className="rounded-lg border bg-fd-popover px-3 py-2 text-xs shadow-md">
       <div className="text-sm font-semibold text-fd-popover-foreground">
-        {number.format(item.time)} μs
+        {number.format(item.value)} {suffix}
       </div>
       <div className="text-fd-muted-foreground">{item.library}</div>
     </div>
@@ -115,7 +130,7 @@ function TestTooltip({
 }
 
 const TestChart = memo(function TestChart({ test }: { test: Test }) {
-  const rows = sorted(test);
+  const rows = points(test);
   return (
     <ResponsiveContainer
       width="100%"
@@ -146,11 +161,11 @@ const TestChart = memo(function TestChart({ test }: { test: Test }) {
         />
         <Tooltip
           cursor={{ fill: "var(--viz-hover)" }}
-          content={<TestTooltip />}
+          content={<TestTooltip suffix={unit(test)} />}
           isAnimationActive={false}
         />
         <Bar
-          dataKey="time"
+          dataKey="value"
           maxBarSize={16}
           minPointSize={2}
           radius={[0, 4, 4, 0]}
@@ -163,7 +178,7 @@ const TestChart = memo(function TestChart({ test }: { test: Test }) {
             />
           ))}
           <LabelList
-            dataKey="time"
+            dataKey="value"
             position="right"
             fontSize={11}
             fill="var(--color-fd-foreground)"
@@ -201,21 +216,25 @@ const TestChart = memo(function TestChart({ test }: { test: Test }) {
 });
 
 const TestTable = memo(function TestTable({ test }: { test: Test }) {
-  const fastest = sorted(test)[0]?.time ?? 1;
+  const rows = points(test);
+  const best = rows[0]?.value ?? 1;
+  const throughput = test.bytes !== undefined;
   return (
     <div className="overflow-x-auto">
       <table className="w-full whitespace-nowrap text-xs tabular-nums">
         <thead className="text-fd-muted-foreground">
           <tr>
             <th className="py-1 pr-2 text-left font-medium">Library</th>
-            <th className="px-2 py-1 text-right font-medium">Median</th>
+            <th className="px-2 py-1 text-right font-medium">
+              {throughput ? "Throughput" : "Time"}
+            </th>
             <th className="py-1 pl-2 text-right font-medium">
-              Times the fastest
+              Times slower than the fastest
             </th>
           </tr>
         </thead>
         <tbody>
-          {sorted(test).map((row) => (
+          {rows.map((row) => (
             <tr
               key={row.library}
               className={
@@ -224,10 +243,10 @@ const TestTable = memo(function TestTable({ test }: { test: Test }) {
             >
               <td className="py-1 pr-2">{row.library}</td>
               <td className="px-2 py-1 text-right">
-                {number.format(row.time)} μs
+                {number.format(row.value)} {unit(test)}
               </td>
               <td className="py-1 pl-2 text-right">
-                {(row.time / fastest).toFixed(1)}x
+                {(throughput ? best / row.value : row.value / best).toFixed(1)}x
               </td>
             </tr>
           ))}
@@ -243,7 +262,9 @@ function TestCard({ test, children }: { test: Test; children: ReactNode }) {
       <figcaption className="mb-3">
         <div className="font-semibold text-fd-card-foreground">{test.name}</div>
         <div className="text-xs text-fd-muted-foreground">
-          {test.input} input. Median time in μs, lower is better.
+          {test.bytes === undefined
+            ? `${test.input} input. Time per call in μs, lower is better.`
+            : `${test.input} input. Throughput in MB/s, higher is better.`}
         </div>
       </figcaption>
       {children}

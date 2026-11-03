@@ -33,6 +33,18 @@ local Hex: string, Mac: buffer = Hashing.HMAC(Message, Key, Hashing.SHA2.SHA256,
 
 HMAC with BLAKE3 is the fastest: on Roblox it does 50 KB in 26 μs, against 142 μs with SHA-256.
 
+## One key, many messages
+
+When you MAC many messages with the same key, `KeyedHMAC` prepares the key once and gives back a function. Call it with each message. It gives the same results as `HMAC`:
+
+```luau
+local Mac = Hashing.KeyedHMAC(Key, Hashing.SHA2.SHA512, 128)
+
+local Hex: string, Tag: buffer = Mac(Message)
+```
+
+With SHA-224, SHA-384 and SHA-512, each message skips two of the four compressions HMAC runs, so short messages are about twice as fast. On Roblox, SHA-256 goes through EncodingService, so there `KeyedHMAC` only saves the work of preparing the key. The function doesn't keep a reference to `Key`, so changing that buffer afterwards doesn't change it.
+
 ## Checking a MAC
 
 Make the MAC again from the message you got, and compare it with the one that came with it, using `CtCompare`:
