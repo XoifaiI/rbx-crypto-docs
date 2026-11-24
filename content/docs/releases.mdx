@@ -5,19 +5,26 @@ description: What changed in each version of rbx-cryptography, and what you have
 
 `+` is new, `~` works differently now, `-` is gone, `!` is something to know before you upgrade.
 
+## 4.1.2
+
+```diff
++ SHA3 and SHAKE are faster on long inputs, which also speeds up KMAC, ML-KEM and ML-DSA
++ BLAKE2b, BLAKE3, SHA-384 and SHA-512 are a little faster
+```
+
 ## 4.1.1
 
 ```diff
-+ Deferred reduction giving MLKEM 13% perf boost
++ ML-KEM is faster, from deferred reduction
 ```
 
 ## 4.1.0
 
 ```diff
-+ SHA3 and SHAKE are about 15% faster, which also speeds up KMAC, ML-KEM and ML-DSA
++ SHA3 and SHAKE are faster, which also speeds up KMAC, ML-KEM and ML-DSA
 + SHA3 runs as native code on ARM devices such as phones. It used to run interpreted there
-+ X25519 is about 13% faster
-+ Ed25519 verify is about 9% faster, and sign and public key about 5%
++ X25519 is faster
++ Ed25519 verify, sign and public key are a little faster
 + Hashing.KeyedHMAC(Key, Hash, BlockSize) prepares the key once and returns a function that MACs a message. With SHA-224, SHA-384 and SHA-512 it is about 2 times faster than HMAC on short messages
 + HMAC is a little faster with SHA-224, SHA-384 and SHA-512
 - EdDSA.VerifyBatch. It was slower than calling EdDSA.Verify on each signature

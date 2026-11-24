@@ -262,10 +262,16 @@ function TestCard({ test, children }: { test: Test; children: ReactNode }) {
       <figcaption className="mb-3">
         <div className="font-semibold text-fd-card-foreground">{test.name}</div>
         <div className="text-xs text-fd-muted-foreground">
+          {test.input === undefined ? "" : `${test.input} input. `}
           {test.bytes === undefined
-            ? `${test.input} input. Time per call in μs, lower is better.`
-            : `${test.input} input. Throughput in MB/s, higher is better.`}
+            ? "Time per call in μs, lower is better."
+            : "Throughput in MB/s, higher is better."}
         </div>
+        {test.note === undefined ? null : (
+          <div className="mt-1 text-xs text-fd-muted-foreground">
+            {test.note}
+          </div>
+        )}
       </figcaption>
       {children}
     </figure>
