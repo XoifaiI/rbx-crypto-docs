@@ -18,7 +18,11 @@ type View = "chart" | "table";
 
 const OURS = "rbx-cryptography";
 const ROW_HEIGHT = 24;
+const WRAPPED_ROW_HEIGHT = 36;
 const AXIS_BAND = 28;
+const LABEL_GAP = 12;
+const MAX_LABEL_WIDTH = 230;
+const MIN_LABEL_WIDTH = 96;
 
 const number = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 });
 
@@ -26,6 +30,53 @@ type Point = Row & { value: number };
 
 function ours(library: string): boolean {
   return library.startsWith(OURS);
+}
+
+// Rough width of a label in pixels at 12 px Inter, semibold, erring wide so nothing is clipped
+function textWidth(text: string): number {
+  let width = 0;
+  for (const character of text) {
+    if (/[A-Z0-9]/.test(character)) {
+      width += 8;
+    } else if (/[a-z]/.test(character)) {
+      width += 6.8;
+    } else {
+      width += 4;
+    }
+  }
+  return width;
+}
+
+// A label too wide for the label column splits into two lines at the space nearest its middle
+function labelLines(text: string): string[] {
+  if (textWidth(text) <= MAX_LABEL_WIDTH) {
+    return [text];
+  }
+  let split = -1;
+  for (let index = 0; index < text.length; index++) {
+    if (
+      text[index] === " " &&
+      (split === -1 ||
+        Math.abs(index - text.length / 2) < Math.abs(split - text.length / 2))
+    ) {
+      split = index;
+    }
+  }
+  return split === -1 ? [text] : [text.slice(0, split), text.slice(split + 1)];
+}
+
+function labelWidth(rows: Point[]): number {
+  let widest = 0;
+  for (const row of rows) {
+    for (const line of labelLines(row.library)) {
+      widest = Math.max(widest, textWidth(line));
+    }
+  }
+  return Math.max(MIN_LABEL_WIDTH, Math.ceil(widest) + LABEL_GAP);
+}
+
+function isWrapped(rows: Point[]): boolean {
+  return rows.some((row) => labelLines(row.library).length > 1);
 }
 
 function unit(test: Test): string {
@@ -87,11 +138,11 @@ function LibraryTick({
 }) {
   const name = payload?.value ?? "";
   const highlighted = ours(name);
+  const lines = labelLines(name);
   return (
     <text
       x={x}
       y={y}
-      dy={4}
       textAnchor="end"
       fontSize={12}
       fontWeight={highlighted ? 600 : 400}
@@ -101,7 +152,15 @@ function LibraryTick({
           : "var(--color-fd-muted-foreground)"
       }
     >
-      {name}
+      {lines.map((line, index) => (
+        <tspan
+          key={line}
+          x={x}
+          dy={index === 0 ? (lines.length === 1 ? 4 : -3) : 14}
+        >
+          {line}
+        </tspan>
+      ))}
     </text>
   );
 }
@@ -131,10 +190,11 @@ function TestTooltip({
 
 const TestChart = memo(function TestChart({ test }: { test: Test }) {
   const rows = points(test);
+  const rowHeight = isWrapped(rows) ? WRAPPED_ROW_HEIGHT : ROW_HEIGHT;
   return (
     <ResponsiveContainer
       width="100%"
-      height={rows.length * ROW_HEIGHT + AXIS_BAND}
+      height={rows.length * rowHeight + AXIS_BAND}
     >
       <BarChart
         data={rows}
@@ -153,7 +213,7 @@ const TestChart = memo(function TestChart({ test }: { test: Test }) {
         <YAxis
           type="category"
           dataKey="library"
-          width={168}
+          width={labelWidth(rows)}
           interval={0}
           tickLine={false}
           axisLine={false}
