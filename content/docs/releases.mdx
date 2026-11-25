@@ -5,6 +5,21 @@ description: What changed in each version of rbx-cryptography, and what you have
 
 `+` is new, `~` works differently now, `-` is gone, `!` is something to know before you upgrade.
 
+## 4.2.0
+
+```diff
++ ML-KEM encapsulate and decapsulate are about 2 times faster, and key generation about 1.5 times faster
++ ML-DSA sign and verify are about 1.7 times faster, and key generation about 1.4 times faster
++ X25519.PublicKey is about 4 times faster
++ Ed25519 verify is faster, more so when the same public key is used again
++ Base64 is about 2 times faster on Roblox. It no longer goes through EncodingService, which was slower at every size
++ MD5 is a little faster
++ SHAKE and SHA3 are a little faster on short inputs, which also speeds up ML-KEM and ML-DSA key generation
++ MlKEM.ClearCaches, MlDSA.ClearCaches and EdDSA.ClearCaches yeet the secret key material each module keeps between calls
++ ML-KEM no longer reads a lookup table at an index taken from secret data
+! ML-KEM, ML-DSA and Ed25519 verify keep the last key they used, so a repeated key skips its setup. Call ClearCaches to drop it
+```
+
 ## 4.1.2
 
 ```diff
