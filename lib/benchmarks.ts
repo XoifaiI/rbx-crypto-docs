@@ -134,7 +134,7 @@ export const TESTS: Test[] = [
     bytes: KB_50,
     rows: [
       row("rbx-cryptography", 62.61),
-      row("rbx-cryptography Luau", 103.71),
+      row("rbx-cryptography Luau", 21.21),
       row("Reselim", 132.6),
       row("Lute", 240.09),
       row("Gamer", 1731.53),
