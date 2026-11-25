@@ -5,6 +5,21 @@ description: What changed in each version of rbx-cryptography, and what you have
 
 `+` is new, `~` works differently now, `-` is gone, `!` is something to know before you upgrade.
 
+## 4.3.0
+
+```diff
++ Ed25519 verify is about 1.25 times faster
++ Ed25519 sign is a little faster when the same secret key signs again
++ AES-GCM is a little faster
++ Conversions.FromHex is about 2 times faster
++ CtCompare, CtCompareMask and CtIsAllZero are up to 3 times faster on long buffers, and CtSelectBuffer, CtCopyIf and CtSwapBuffers are a little faster
++ X25519.ClearCaches yeets the secret material X25519 keeps between calls
+~ ClearCaches also wipes the scratch buffers and hash state the last operation worked in, not only the cached keys
+~ Received data of the wrong type or length gives false or nil instead of erroring, in every Verify and Decrypt, X25519.Exchange, ML-KEM Encapsulate's public key and Decapsulate's ciphertext, Base64.Decode and Conversions.FromHex. Keys and options you pass still error
+~ X25519.Exchange gives nil for a public key that would make the shared secret all zeros, and Base64.Decode and Conversions.FromHex give nil for invalid text. They used to error
+! X25519.Exchange, ML-KEM Encapsulate and Decapsulate, Base64.Decode and Conversions.FromHex can now give nil. Check for it where you relied on the error
+```
+
 ## 4.2.0
 
 ```diff
@@ -17,7 +32,7 @@ description: What changed in each version of rbx-cryptography, and what you have
 + SHAKE and SHA3 are a little faster on short inputs, which also speeds up ML-KEM and ML-DSA key generation
 + MlKEM.ClearCaches, MlDSA.ClearCaches and EdDSA.ClearCaches yeet the secret key material each module keeps between calls
 + ML-KEM no longer reads a lookup table at an index taken from secret data
-! ML-KEM, ML-DSA and Ed25519 verify keep the last key they used, so a repeated key skips its setup. Call ClearCaches to drop it
+! ML-KEM, ML-DSA and Ed25519 verify keep the last key they used, so a repeated key skips its setup. Call ClearCaches to yeet it
 ```
 
 ## 4.1.2

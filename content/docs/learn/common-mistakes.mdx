@@ -97,13 +97,21 @@ See [Random numbers](/docs/learn/random).
 
 ```luau
 -- Wrong: the shared secret isn't tied to this exchange or this job
-local SharedSecret: buffer = X25519.Exchange(SecretKey, TheirPublicKey)
+local SharedSecret: buffer? = X25519.Exchange(SecretKey, TheirPublicKey)
+if not SharedSecret then
+	return -- not a usable public key
+end
+
 AEAD.Encrypt(Message, SharedSecret, Nonce)
 ```
 
 ```luau
 -- Right: derive a key from it, with both public keys mixed in
-local SharedSecret: buffer = X25519.Exchange(SecretKey, TheirPublicKey)
+local SharedSecret: buffer? = X25519.Exchange(SecretKey, TheirPublicKey)
+if not SharedSecret then
+	return -- not a usable public key
+end
+
 local _, SessionKey: buffer = DeriveSessionKey(Concatenate(SharedSecret, ClientPublicKey, ServerPublicKey), 32)
 AEAD.Encrypt(Message, SessionKey, Nonce)
 ```

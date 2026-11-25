@@ -37,4 +37,6 @@ Signing the same message twice gives the same signature, so you don't need rando
 
 The message can be any length. Ed25519 hashes it with SHA-512 twice to sign, and once to check, so a long message costs about as much as hashing it: on Roblox, SHA-512 runs at about 142 MB/s, and signing a 64 byte message takes about 39 μs.
 
+EdDSA keeps the last secret key it signed with and the last public key it checked, so using the same key again skips its setup. Call `EdDSA.ClearCaches()` to drop them when you're done, along with the scratch the last call worked in.
+
 Next: [Key exchange](/docs/learn/key-exchange)

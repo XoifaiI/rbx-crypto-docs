@@ -26,7 +26,7 @@ Only numbers that change what you do are here. Passing a value outside one error
 | Rounds | A positive even number. |
 | AES key | 16, 24 or 32 bytes. |
 | AES IV | At least 1 byte. |
-| A tag | 16 bytes. `AEAD.Decrypt` errors on any other length, and `AES.Decrypt` gives `nil`. |
+| A tag | 16 bytes. Both `Decrypt` functions give `nil` for any other length. |
 | Messages with one key and random 12 byte nonces | Change the key before 2^32. |
 
 ## Signatures and key exchange
@@ -34,7 +34,7 @@ Only numbers that change what you do are here. Passing a value outside one error
 | | Limit |
 | --- | --- |
 | Ed25519 and X25519 keys | Exactly 32 bytes. |
-| X25519 public keys | The few that give an all zero shared secret error. |
+| X25519 public keys | The few that give an all zero shared secret make `Exchange` give `nil`. |
 | ML-KEM seeds and message | Exactly 32 bytes each. |
 | ML-DSA context | Up to 255 bytes. Longer makes `Sign` give `false`. |
 
@@ -52,4 +52,4 @@ Only numbers that change what you do are here. Passing a value outside one error
 | --- | --- |
 | `FromHex` input | An even number of characters. |
 | `XOR` key | At least 1 byte. |
-| `Base64.Decode` | Errors on text that isn't valid Base64, including text whose last character carries bits past the end of the data. |
+| `Base64.Decode` | Gives `nil` for text that isn't valid Base64, including text whose last character carries bits past the end of the data. |

@@ -24,12 +24,15 @@ X25519 keys are not Ed25519 keys, even though both are 32 bytes. Use `X25519.Pub
 Send your public key, get theirs, and combine:
 
 ```luau
-local SharedSecret: buffer = X25519.Exchange(SecretKey, TheirPublicKey)
+local SharedSecret: buffer? = X25519.Exchange(SecretKey, TheirPublicKey)
+if not SharedSecret then
+	return -- not a usable public key
+end
 ```
 
 The other side calls `Exchange` with its secret key and your public key, and gets the same 32 bytes.
 
-If the public key you're given is one of the few that would make the shared secret all zeros, `Exchange` errors instead of giving you a secret anyone could guess.
+If the public key you're given isn't 32 bytes, or is one of the few that would make the shared secret all zeros, `Exchange` gives `nil` instead of a secret anyone could guess. Check for it before you use the secret.
 
 ## Using the shared secret
 
@@ -54,5 +57,7 @@ Stop that by signing the public key you exchange with a long term [Ed25519](/doc
 ## New keys every session
 
 Make a new X25519 key pair for every session, and throw the secret key away when the session ends. Then even if a long term key leaks later, nobody can work out the keys of sessions that already ended. This is called forward secrecy. The `ForwardSecrecy` example in the repository does all of this: signed public keys, a new key pair per session, and a derived session key.
+
+`X25519.ClearCaches()` wipes what the library still holds from the last exchange.
 
 Next: [Post quantum](/docs/learn/post-quantum)

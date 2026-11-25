@@ -19,16 +19,19 @@ local CSPRNG = Cryptography.Utilities.CSPRNG
 local PublicKey: buffer, SecretKey: buffer = MlKEM.MLKEM_768.GenerateKeys()
 
 -- the sender, with the receiver's public key
-local Ciphertext: buffer, SharedSecret: buffer = MlKEM.MLKEM_768.Encapsulate(CSPRNG.RandomBytes(32), PublicKey)
+local Ciphertext: buffer?, SharedSecret: buffer? = MlKEM.MLKEM_768.Encapsulate(CSPRNG.RandomBytes(32), PublicKey)
+if not Ciphertext or not SharedSecret then
+	return -- not a valid public key
+end
 
 -- the receiver, with the ciphertext
-local Recovered: buffer = MlKEM.MLKEM_768.Decapsulate(Ciphertext, SecretKey)
-print(MlKEM.SecretsEqual(SharedSecret, Recovered)) -- true
+local Recovered: buffer? = MlKEM.MLKEM_768.Decapsulate(Ciphertext, SecretKey)
+print(Recovered ~= nil and MlKEM.SecretsEqual(SharedSecret, Recovered)) -- true
 ```
 
 - **`GenerateKeys`** makes a key pair from the library's random number generator. `KeyGen(D, Z)` does the same from two 32 byte seeds you give it.
-- **`Encapsulate`** takes 32 random bytes and the public key, and gives back the ciphertext to send and the shared secret to keep.
-- **`Decapsulate`** gives back the same shared secret. If the ciphertext was changed, it gives back a different secret, never an error, so the two sides end up with different keys and nothing they encrypt will decrypt.
+- **`Encapsulate`** takes 32 random bytes and the public key, and gives back the ciphertext to send and the shared secret to keep, or `nil` for both if the public key isn't valid.
+- **`Decapsulate`** gives back the same shared secret. If the ciphertext was changed, it gives back a different secret, never an error, so the two sides end up with different keys and nothing they encrypt will decrypt. It gives `nil` only for a ciphertext of the wrong length.
 - **`SecretsEqual`** compares two secrets in constant time.
 
 | Level | Public key | Secret key | Ciphertext |
@@ -77,5 +80,7 @@ local Valid: boolean = MlDSA.ML_DSA_65.Verify(Message, PublicKey, Context, Signa
 | `ML_DSA_87` | 2,592 bytes | 4,896 bytes | 4,627 bytes |
 
 Each level has its sizes as fields: `PubKeyByteLen`, `SecKeyByteLen` and `SigByteLen`.
+
+ML-KEM and ML-DSA keep the last key they used, so using the same key again skips its setup. Call `MlKEM.ClearCaches()` or `MlDSA.ClearCaches()` to drop it when you're done, along with the scratch the last call worked in.
 
 Next: [Random numbers](/docs/learn/random)

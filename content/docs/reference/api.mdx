@@ -11,7 +11,7 @@ local Cryptography = require(ReplicatedStorage.Cryptography)
 local Hex: string, Digest: buffer = Cryptography.Hashing.SHA2.SHA256(Message)
 ```
 
-Every function is typed. Every argument that takes bytes takes a `buffer`. A bad argument errors, naming it: `Key must be exactly 32 bytes long, got 16 bytes`.
+Every function is typed. Every argument that takes bytes takes a `buffer`. A bad argument you control, like a key or an option, errors and names it: `Key must be exactly 32 bytes long, got 16 bytes`. Data you received, like a signature, a ciphertext, a nonce or someone else's public key, never errors: the wrong type or length gives `false` or `nil` like any other bad data, so a client can't make your server error by sending something odd.
 
 ## The module
 
@@ -67,12 +67,12 @@ Under `Cryptography.Encryption`.
 | Function | Gives back | What it does |
 | --- | --- | --- |
 | `AEAD.Encrypt(Message, Key, Nonce, ExtraData?, Rounds?, XChaCha?)` | `(Ciphertext: buffer, Tag: buffer)` | ChaCha20-Poly1305. `Key` is 32 bytes, `Nonce` 12, or 24 with `XChaCha` set to `true`. `Rounds` is an even number, 20 by default. |
-| `AEAD.Decrypt(Ciphertext, Key, Nonce, Tag, ExtraData?, Rounds?, XChaCha?)` | `buffer?` | The plaintext, or `nil` if anything was changed. Errors if `Tag` isn't 16 bytes. |
+| `AEAD.Decrypt(Ciphertext, Key, Nonce, Tag, ExtraData?, Rounds?, XChaCha?)` | `buffer?` | The plaintext, or `nil` if anything was changed or the ciphertext, nonce, tag or extra data has the wrong type or length. |
 | `AEAD.ChaCha20(Data, Key, Nonce, Counter?, Rounds?)` | `buffer` | ChaCha20 on its own, with no tag. `Key` is 16 or 32 bytes, `Nonce` 12. |
 | `AEAD.XChaCha20(Data, Key, Nonce, Counter?, Rounds?)` | `buffer` | XChaCha20 on its own, with no tag. `Nonce` is 24 bytes. |
 | `AEAD.Poly1305(Message, Key)` | `buffer` | A 16 byte Poly1305 tag. `Key` is 32 bytes, and must never be used twice. |
 | `AES.Encrypt(Message, Key, IV, ExtraData?)` | `(Ciphertext: buffer, Tag: buffer)` | AES-GCM. `Key` is 16, 24 or 32 bytes. `IV` is any length but 0. Use 12. |
-| `AES.Decrypt(Ciphertext, Key, IV, Tag, ExtraData?)` | `buffer?` | The plaintext, or `nil` if anything was changed, or `Tag` isn't 16 bytes. |
+| `AES.Decrypt(Ciphertext, Key, IV, Tag, ExtraData?)` | `buffer?` | The plaintext, or `nil` if anything was changed or the ciphertext, IV, tag or extra data has the wrong type or length. |
 
 `ChaCha20` and `XChaCha20` encrypt and decrypt the same way: running one on its output with the same key and nonce gives the input back.
 
@@ -84,9 +84,11 @@ Under `Cryptography.Verification.EdDSA`.
 | --- | --- | --- |
 | `PublicKey(SecretKey)` | `buffer` | The 32 byte public key for a 32 byte secret key. |
 | `Sign(Message, SecretKey, PublicKey)` | `buffer` | A 64 byte signature. |
-| `Verify(Message, PublicKey, Signature)` | `boolean` | Whether the signature is valid for this message and key. |
+| `Verify(Message, PublicKey, Signature)` | `boolean` | Whether the signature is valid for this message and key. `false` for arguments of the wrong type or length. |
 | `X25519.PublicKey(SecretKey)` | `buffer` | The 32 byte X25519 public key for a 32 byte secret key. |
-| `X25519.Exchange(SecretKey, TheirPublicKey)` | `buffer` | The 32 byte shared secret. Errors if it would be all zeros. |
+| `X25519.Exchange(SecretKey, TheirPublicKey)` | `buffer?` | The 32 byte shared secret, or `nil` if `TheirPublicKey` isn't 32 bytes or would make the secret all zeros. |
+| `ClearCaches()` | | Drops the last key it signed with and the last key it checked, and wipes the scratch the last call worked in. Clears X25519's too. |
+| `X25519.ClearCaches()` | | Wipes the secret key bits and the scratch the last call worked in. |
 
 ## ML-KEM
 
@@ -96,14 +98,15 @@ Under `Cryptography.Verification.MlKEM`. `MLKEM_512`, `MLKEM_768` and `MLKEM_102
 | --- | --- | --- |
 | `GenerateKeys()` | `(PublicKey: buffer, SecretKey: buffer)` | A key pair from the random number generator. |
 | `KeyGen(D, Z)` | `(PublicKey: buffer, SecretKey: buffer)` | A key pair from two 32 byte seeds. |
-| `Encapsulate(Message, PublicKey)` | `(Ciphertext: buffer, SharedSecret: buffer)` | `Message` is 32 random bytes. |
-| `Decapsulate(Ciphertext, SecretKey)` | `buffer` | The shared secret. A changed ciphertext gives a different secret, not an error. |
+| `Encapsulate(Message, PublicKey)` | `(Ciphertext: buffer?, SharedSecret: buffer?)` | `Message` is 32 random bytes. Both are `nil` if `PublicKey` is the wrong length or not a valid key. |
+| `Decapsulate(Ciphertext, SecretKey)` | `buffer?` | The shared secret. A changed ciphertext gives a different secret, not an error. `nil` if the ciphertext is the wrong length. |
 | `ValidateDecapsulationKey(SecretKey)` | `boolean` | Whether a secret key is undamaged. |
 
 | Member | What it is |
 | --- | --- |
 | `MlKEM.SecretsEqual(A, B)` | Compares two shared secrets in constant time. |
 | `MlKEM.CSPRNG` | The same random number generator as `Utilities.CSPRNG`. |
+| `MlKEM.ClearCaches()` | Drops the keys it kept from the last calls, and wipes the scratch and hash state the last call worked in. |
 
 ## ML-DSA
 
@@ -114,13 +117,13 @@ Under `Cryptography.Verification.MlDSA`. `ML_DSA_44`, `ML_DSA_65` and `ML_DSA_87
 | `GenerateKeys()` | Gives back `(PublicKey: buffer, SecretKey: buffer)` from the random number generator. |
 | `KeyGen(Seed, PublicKey, SecretKey)` | Writes a key pair from a 32 byte seed into two buffers of `PubKeyByteLen` and `SecKeyByteLen` bytes. |
 | `Sign(Message, Random, SecretKey, Context, Signature)` | Writes a signature into `Signature`, a buffer of `SigByteLen` bytes. `Random` is 32 bytes, all zeros to sign the same way every time. `Context` is up to 255 bytes. Gives `false` if it couldn't sign. |
-| `Verify(Message, PublicKey, Context, Signature)` | Gives back whether the signature is valid for this message, key and context. |
+| `Verify(Message, PublicKey, Context, Signature)` | Gives back whether the signature is valid for this message, key and context. `false` for arguments of the wrong type or length, but `Context` must be a buffer. |
 | `SignInternal(MessagePrime, Random, SecretKey, Signature)` | FIPS 204's internal signing, on an already encoded message. |
 | `SignMu(Mu, Random, SecretKey, Signature)` | Signs a 64 byte message representative you computed yourself. |
 | `PubKeyByteLen`, `SecKeyByteLen`, `SigByteLen` | The sizes of a public key, a secret key and a signature. |
 | `KeygenSeedByteLen`, `SigningSeedByteLen` | The sizes of `Seed` and `Random`, 32 bytes each. |
 
-`MlDSA.CSPRNG` is the same random number generator as `Utilities.CSPRNG`.
+`MlDSA.CSPRNG` is the same random number generator as `Utilities.CSPRNG`. `MlDSA.ClearCaches()` drops the keys it kept from the last calls, and wipes the scratch and hash state the last call worked in.
 
 ## Random numbers
 
@@ -144,9 +147,9 @@ Under `Cryptography.Utilities`.
 | Function | Gives back | What it does |
 | --- | --- | --- |
 | `Base64.Encode(Data)` | `buffer` | Base64 text, as a buffer. |
-| `Base64.Decode(Data)` | `buffer` | The bytes. |
+| `Base64.Decode(Data)` | `buffer?` | The bytes, or `nil` if it isn't valid Base64. |
 | `Conversions.ToHex(Data)` | `string` | Two hex characters per byte. |
-| `Conversions.FromHex(Hex)` | `buffer` | The bytes, from a string or buffer of even length. |
+| `Conversions.FromHex(Hex)` | `buffer?` | The bytes, from a string or buffer of even length, or `nil` if it isn't valid hex. |
 | `XOR(Data, Key)` | `buffer` | `Data` combined with `Key`, repeating `Key`. Not encryption. |
 | `Concatenate(...Buffers)` | `buffer` | The buffers joined into one. |
 

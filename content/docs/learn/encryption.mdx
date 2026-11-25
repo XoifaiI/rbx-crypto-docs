@@ -90,6 +90,6 @@ AES-GCM is safe to use, but ChaCha20-Poly1305 is the better default:
 
 `Decrypt` gives `nil` when the ciphertext, the tag, the nonce or the extra data was changed, or the key is wrong. It doesn't say which, on purpose.
 
-A tag that isn't 16 bytes long makes `AEAD.Decrypt` error, and makes `AES.Decrypt` give `nil`.
+A tag, nonce or ciphertext of the wrong type or length makes `Decrypt` give `nil` too, so whatever a client sends you, check for `nil` and nothing errors.
 
 Next: [Signatures](/docs/learn/signatures)
