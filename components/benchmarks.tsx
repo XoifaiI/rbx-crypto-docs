@@ -94,7 +94,7 @@ function points(test: Test): Point[] {
   );
 }
 
-function Switch<T extends string>({
+export function Switch<T extends string>({
   label,
   value,
   options,
