@@ -49,15 +49,14 @@ If you only want the buffer, skip the hex: `local _, Digest = Hashing.SHA2.SHA25
 
 ## Roblox's own hashing
 
-On Roblox, some of these go through `EncodingService`, which runs as native code inside the engine:
+On Roblox, two of these can go through `EncodingService`, which runs as native code inside the engine:
 
 | Hash | When |
 | --- | --- |
-| SHA-256, SHA-1, MD5 | Always. |
-| BLAKE3 | `Digest` and `DigestBuffer` with no length, or a length of 32. |
+| BLAKE3 | `Digest` and `DigestBuffer` with no length, or a length of 32, on 512 bytes or more. |
 | BLAKE2b | `Digest` and `DigestBuffer` with a length of exactly 32 and no key. |
 
-Everything else runs in Luau. The result is the same either way. Outside Roblox, where there's no `EncodingService`, everything runs in Luau, so the library also works in Lune or the Luau command line.
+Everything else runs in Luau. SHA-256, SHA-1 and MD5 run in Luau because it's faster than `EncodingService` and so is BLAKE3 below 512 bytes. The result is the same either way. Outside Roblox, where there's no `EncodingService`, everything runs in Luau, so the library also works in Lune or the Luau command line.
 
 ## Longer outputs
 

@@ -22,9 +22,9 @@ local Cryptography = require(ReplicatedStorage.Cryptography) -- nothing loaded y
 local SHA256 = Cryptography.Hashing.SHA2.SHA256 -- SHA-256 loads here
 ```
 
-Loading an algorithm compiles its code to native code, which can take a while for the big ones. On a Roblox server, BLAKE2b's Luau code takes about 105 ms the first time, and BLAKE3's about 66 ms. Every time after that is free.
+Loading an algorithm compiles its code to native code, which can take a while for the big ones. On a Roblox server, BLAKE2b's Luau code takes about 105 ms the first time. Every time after that is free.
 
-When `EncodingService` can do the work, the Luau code it replaces never loads at all. SHA-256, SHA-1, MD5 and Base64 never load their Luau code on Roblox. BLAKE3 and BLAKE2b only load theirs the first time you call them with a key or a length `EncodingService` can't do.
+When `EncodingService` can do the work, the Luau code it replaces never loads at all. BLAKE2b only loads its Luau code the first time you call it with a key or a length `EncodingService` can't do. BLAKE3 loads its Luau code the first time you hash under 512 bytes, use a key, or a different length other than 32.
 
 The groups are read only. Assigning to `Cryptography.Hashing.SHA256` errors, and so does reading an algorithm that doesn't exist.
 

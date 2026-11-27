@@ -39,7 +39,7 @@ Make the function once, and call it as often as you like.
 
 ## Where its randomness comes from
 
-On Roblox, the generator seeds itself from `HttpService:GenerateGUID`, and mixes in new GUIDs as it goes. From that seed it makes its output with keyed BLAKE3, and replaces its key after every 2 KB, so nobody who learns its state can work out what it gave out before.
+On Roblox, the generator seeds itself from `HttpService:GenerateGUID`, and mixes in new GUIDs as it goes. From that seed it makes its output with keyed BLAKE3, and replaces its key after every 4 KB, so nobody who learns its state can work out what it gave out before.
 
 Outside Roblox, where there's no `HttpService`, it seeds from clock timing instead.
 

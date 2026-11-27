@@ -5,93 +5,78 @@ description: What changed in each version of rbx-cryptography, and what you have
 
 `+` is new, `~` works differently now, `-` is gone, `!` is something to know before you upgrade.
 
-## 4.3.0
+## 5.0.0
 
 ```diff
-+ Ed25519 verify is about 1.25 times faster
-+ Ed25519 sign is a little faster when the same secret key signs again
-+ AES-GCM is a little faster
-+ Conversions.FromHex is about 2 times faster
-+ CtCompare, CtCompareMask and CtIsAllZero are up to 3 times faster on long buffers, and CtSelectBuffer, CtCopyIf and CtSwapBuffers are a little faster
-+ X25519.ClearCaches yeets the secret material X25519 keeps between calls
-~ ClearCaches also wipes the scratch buffers and hash state the last operation worked in, not only the cached keys
-~ Received data of the wrong type or length gives false or nil instead of erroring, in every Verify and Decrypt, X25519.Exchange, ML-KEM Encapsulate's public key and Decapsulate's ciphertext, Base64.Decode and Conversions.FromHex. Keys and options you pass still error
-~ X25519.Exchange gives nil for a public key that would make the shared secret all zeros, and Base64.Decode and Conversions.FromHex give nil for invalid text. They used to error
-! X25519.Exchange, ML-KEM Encapsulate and Decapsulate, Base64.Decode and Conversions.FromHex can now give nil. Check for it where you relied on the error
++ SHA-512 and SHA-384 are about 22% faster on short messages and 46% on long ones
++ SHA-256 and SHA-224 are about 18% faster on short messages and 24% on long ones
++ SHA3 and SHAKE are about 30% faster on short messages and 21% on long ones, which also speeds up KMAC, ML-KEM and ML-DSA
++ BLAKE3 is about 62% faster on short messages and 15% on long ones
++ MD5 and SHA-1 are about 19% faster on short messages and 6 to 10% on long ones
++ BLAKE2b is about 7% faster
++ HMAC is about 15 to 31% faster, and KeyedHMAC about 21 to 32%
++ ChaCha20-Poly1305 is about 26% faster on short messages and 14% on long ones
++ AES-GCM is about 38% faster on long messages
++ Ed25519 sign is about 31% faster, public key 26% and verify 25%
++ X25519 public key is about 24% faster, and exchange 17%
++ ML-KEM-768 encapsulate is about 30% faster, and key generation and decapsulate about 25%
++ ML-DSA-65 key generation is about 26% faster, sign 10% and verify 7%
++ CSPRNG.RandomString is about 2.1x faster, RandomBytes 20 to 45%, and RandomInt and RandomNumber about 22%
++ Base64.Decode is about 17% faster, and its tables take half the memory
++ On Roblox, MD5, SHA-1 and SHA-256 run in Luau instead of EncodingService, which is now slower
++ On Roblox, BLAKE3 runs in Luau below 512 bytes, where it beats EncodingService by up to 2.5x
++ On Roblox, KeyedHMAC with SHA-256 skips the key's compressions too, so it is about 1.8x as fast as HMAC on short messages
++ Requiring everything takes about a third less time. SHA3 loads about 3.8x faster, CSPRNG 2.4x, EdDSA 1.9x and ChaCha20-Poly1305 1.7x
++ ML-KEM and ML-DSA only load the random number generator when GenerateKeys first needs it, and EdDSA only loads X25519 when you first use it
++ EdDSA builds its tables the first time you use it, so requiring it takes about 140 KB of memory instead of 680 KB
++ SHA3.SHA3_256_Into, SHA3_512_Into and SHAKE256_Into hash part of a buffer straight into part of another
++ The random number generator replaces its key after every 4 KB of output and mixes in new GUIDs every 4 MB. It was 2 KB and 2 MB
++ ChaCha20, XChaCha20 and HChaCha20 errors have traceback
 ```
 
-## 4.2.0
+Percentages are the library's Luau code timed natively against 4.3.0. The Roblox comparisons were timed in Studio.
+
+## 4.x
+
+Covers 4.0.0 to 4.3.0.
 
 ```diff
-+ ML-KEM encapsulate and decapsulate are about 2 times faster, and key generation about 1.5 times faster
-+ ML-DSA sign and verify are about 1.7 times faster, and key generation about 1.4 times faster
-+ X25519.PublicKey is about 4 times faster
-+ Ed25519 verify is faster, more so when the same public key is used again
-+ Base64 is about 2 times faster on Roblox. It no longer goes through EncodingService, which was slower at every size
-+ MD5 is a little faster
-+ SHAKE and SHA3 are a little faster on short inputs, which also speeds up ML-KEM and ML-DSA key generation
-+ MlKEM.ClearCaches, MlDSA.ClearCaches and EdDSA.ClearCaches yeet the secret key material each module keeps between calls
-+ ML-KEM no longer reads a lookup table at an index taken from secret data
-! ML-KEM, ML-DSA and Ed25519 verify keep the last key they used, so a repeated key skips its setup. Call ClearCaches to yeet it
-```
-
-## 4.1.2
-
-```diff
-+ SHA3 and SHAKE are faster on long inputs, which also speeds up KMAC, ML-KEM and ML-DSA
-+ BLAKE2b, BLAKE3, SHA-384 and SHA-512 are a little faster
-```
-
-## 4.1.1
-
-```diff
-+ ML-KEM is faster, from deferred reduction
-```
-
-## 4.1.0
-
-```diff
-+ SHA3 and SHAKE are faster, which also speeds up KMAC, ML-KEM and ML-DSA
++ ML-DSA-65 verify is about 25x faster, sign 14x and key generation 10x
++ ML-KEM-768 encapsulate is about 11x faster, decapsulate 9.8x and key generation 8.6x
++ SHA-1 is about 14x faster, MD5 9.3x and SHA-256 4.6x in Luau
++ X25519 exchange is about 7x faster, and public key 4x
++ BLAKE3 is about 4.1x faster, and AES-GCM and KMAC about 4x
++ BLAKE2b, SHA3, ChaCha20, XChaCha20, Base64 and CSPRNG.RandomBytes are about 3x faster
++ Conversions.FromHex is about 3.2x faster, and XOR 3.4x
++ Ed25519 verify is about 2.4x faster, public key 2x and sign 91%, more so when the same key is used again
++ SHA-512 and SHA-384 are about 89% faster, and HMAC 87%
++ CtCompare, CtCompareMask and CtIsAllZero are up to 3x faster on long buffers
 + SHA3 runs as native code on ARM devices such as phones. It used to run interpreted there
-+ X25519 is faster
-+ Ed25519 verify, sign and public key are a little faster
-+ Hashing.KeyedHMAC(Key, Hash, BlockSize) prepares the key once and returns a function that MACs a message. With SHA-224, SHA-384 and SHA-512 it is about 2 times faster than HMAC on short messages
-+ HMAC is a little faster with SHA-224, SHA-384 and SHA-512
-- EdDSA.VerifyBatch. It was slower than calling EdDSA.Verify on each signature
-```
-
-## 4.0.1
-```diff
-+ Fixed type errors from lsp being outdated
-```
-
-## 4.0.0
-
-```diff
-+ Almost every algorithm is faster. In Luau, SHA-256 is about 4.6 times faster, SHA-1 about 14, MD5 about 9, BLAKE3 about 3.9, AES-GCM about 4, ChaCha20 about 2.9 and ML-DSA-65 signing about 8
-+ X25519 is about 6 times faster, ML-KEM-768 about 4 to 5, and Ed25519 signing about 1.8
-+ On Roblox, SHA-256, SHA-1, MD5 and Base64 go through EncodingService, and so do BLAKE3 and BLAKE2b for unkeyed 32 byte digests
 + Every algorithm loads the first time you use it, so requiring the library takes about 2 ms
 + Cryptography.Preload(...) loads algorithms ahead of time
-+ The Luau code EncodingService replaces never loads on Roblox
++ On Roblox, SHA-256, SHA-1 and MD5 go through EncodingService, and so do BLAKE3 and BLAKE2b for unkeyed 32 byte digests
++ Hashing.KeyedHMAC(Key, Hash, BlockSize) prepares the key once and returns a function that MACs a message
 + X25519.PublicKey(SecretKey) and X25519.Exchange(SecretKey, TheirPublicKey)
 + Blake3.DigestBuffer and Blake2b.DigestBuffer, which only give the buffer
 + Constant time helpers in Utilities: CtCompare, CtSelect, CtSwap, CtSelectBuffer and more
 + Utilities.Concatenate
-~ The random number generator seeds from HttpService GUIDs, makes its output with keyed BLAKE3, and replaces its key after every 2 KB
++ ClearCaches on EdDSA, X25519, MlKEM and MlDSA yeets the key material and scratch each module keeps between calls
++ ML-KEM no longer reads a lookup table at an index taken from secret data
+~ The random number generator seeds from HttpService GUIDs, makes its output with keyed BLAKE3, and replaces its key as it goes
 ~ CSPRNG.AddEntropy only ever mixes bytes in, so bytes that aren't random can't make it weaker
 ~ ML-KEM Decapsulate gives a different secret for a changed ciphertext or a bad key, instead of erroring
 ~ AES-GCM checks the tag before it decrypts anything
-~ X25519.Exchange errors on a public key that would give an all zero shared secret
-~ HMAC and HKDF give the right result with SHA-256 and every other hash. They were wrong by default for everything but SHA-384 and SHA-512
+~ HMAC and HKDF give the right result with every hash. They were wrong by default for everything but SHA-384 and SHA-512
 ~ KMAC with no customization string matches the standard
 ~ BLAKE2b's buffer is right for lengths that aren't a multiple of 4
-~ Poly1305 gives the right tag for an empty message
-~ ChaCha20-Poly1305 encrypts empty messages
+~ Poly1305 gives the right tag for an empty message, and ChaCha20-Poly1305 encrypts empty messages
+~ Received data of the wrong type or length gives false or nil instead of erroring, in every Verify and Decrypt, X25519.Exchange, ML-KEM Encapsulate's public key and Decapsulate's ciphertext, Base64.Decode and Conversions.FromHex. Keys and options you pass still error
+~ X25519.Exchange gives nil for a public key that would make the shared secret all zeros, and Base64.Decode and Conversions.FromHex give nil for invalid text
 - The salt argument of the SHA-2 hashes. Use HMAC
 - The masked X25519 API: Mask, MaskSignature, Remask, MaskComponent and 64 byte masked keys
 - CSPRNG.Ed25519Random, Ed25519ClampedBytes, Reseed, AddEntropyProvider, RemoveEntropyProvider and BytesLeft
 - EdDSA.CSPRNG. Use Utilities.CSPRNG
+- EdDSA.VerifyBatch. It was slower than calling EdDSA.Verify on each signature
 - Simon, Speck, Adler-32, CRC32, MurmurHash3 and XXH32
 - Utilities.RandomString. Use CSPRNG.RandomString
 ! SHA-384 and SHA-512 give their bytes in the standard order. They used to be little endian words
@@ -101,10 +86,145 @@ description: What changed in each version of rbx-cryptography, and what you have
 ! AES.Decrypt gives the plaintext, or nil. It used to give (boolean, buffer?)
 ! XOR moved from Encryption to Utilities
 ! Ed25519 and X25519 secret keys are just CSPRNG.RandomBytes(32)
+! X25519.Exchange, ML-KEM Encapsulate and Decapsulate, Base64.Decode and Conversions.FromHex can give nil. Check for it where you relied on the error
+! ML-KEM, ML-DSA and Ed25519 keep the last key they used, so a repeated key skips its setup. Call ClearCaches to yeet it
 ```
 
-To upgrade, see [Encryption](/docs/learn/encryption#aes-gcm) for the new `AES.Decrypt`, and [Key exchange](/docs/learn/key-exchange) for the new X25519.
+To upgrade from 3.x, see [Encryption](/docs/learn/encryption#aes-gcm) for the new `AES.Decrypt`, and [Key exchange](/docs/learn/key-exchange) for the new X25519.
 
-## 3.1.4 and before
+## 3.x
 
-See the [releases on GitHub](https://github.com/daily3014/rbx-cryptography/releases).
+Covers 3.0.0 to 3.1.4.
+
+```diff
++ KMAC is about 3.2x faster
++ ChaCha20 is about 2.2x faster
++ SHA-512/384 is about 82% faster
++ Speck is about 81% faster
++ Simon is about 65% faster
++ CRC32 is about 41% faster
++ SHA-256/224 is about 37% faster
++ BLAKE3 is about 26% faster
++ AES-GCM is about 24% faster
++ Base64 is about 23% faster
++ SHA3/SHAKE is about 21% faster
++ ML-KEM is about 18% faster
++ Adler-32 is about 17% faster
++ ML-DSA is about 15% faster
++ HMAC is about 14% faster
++ Ed25519 is about 12% faster
+- Salt param (use HMAC)
+! Reordered BLAKE3.DigestKeyed to (Message, Key, Length?)
+! Reordered AES.Encrypt to (Plaintext, Key, IV, AAD?)
+! Reordered AES.Decrypt to (Ciphertext, Key, IV, Tag, AAD?)
+! Reordered EdDSA.Sign to (Message, SecretKey, PublicKey)
+! Reordered EdDSA.Verify to (Message, PublicKey, Signature)
+! Reordered ML-DSA Sign to (Message, SecretKey, RandomSeed, Context, Signature)
+! Reordered ML-DSA Verify to (Message, PublicKey, Context, Signature)
+! Reordered ML-KEM Encapsulate to (Message, PublicKey)
+! Reordered ML-KEM Decapsulate to (Ciphertext, SecretKey)
++ Added HKDF
+~ Fix HKDF file not being called init.luau resulting in failed import
+~ Fix CSPRNG hardcoding certain config values (CSPRNG.RekeyAfter and CSPRNG.SizeTarget)
+~ Fixed CSPRNG not advancing entropy buffer offset after adding provider entropy
+~ Fixed CSPRNG rejection sampling
+~ Improved argument validation in CSPRNG
+! Swapped endianness of raw digest in SHA256, SHA224 and MD5
+```
+
+## 2.x
+
+Covers 2.0.0 to 2.9.2.
+
+```diff
++ AES-GCM is about 21x faster
++ ML-KEM is about 6.4x faster
++ Base64 is about 6.4x faster
++ ML-DSA is about 4.2x faster
++ SHA3/SHAKE is about 70% faster
++ Ed25519 is about 53% faster
++ CSPRNG is about 51% faster
++ SHA-512/384 is about 30% faster
++ MD5 is about 15% faster
++ BLAKE3 is about 14% faster
++ Simon is about 10% faster
++ Speck is about 10% faster
+! AES now only supports GCM mode
+- OOP interface
+- All cipher modes except GCM
+- Padding schemes (GCM handles authentication internally)
++ New `AddEntropyProvider`/ `RemoveEntropyProvider` for CSPRNG
+- CSPRNG OOP interface
+~ Attempted to fix modulo bias in CSPRNG
+- SHA512_224
+- SHA512_256
++ New extensible output functions for SHA3
++ CSPRNG now passes the amount of bytes left in the entropy buffer to providers
++ CSPRNG will also now warn if providers return more bytes than available
++ CSPRNG now has a static value of the amount of bytes left for custom entropy when reseeding
++ Added XChaCha20, which uses a 24 byte nonce compared to the nonce 12 byte nonce
++ Added AEAD support for XChaCha20
++ New non-cryptographic hash, Murmur3-32
+~ Improved RandomString's signature to provide better type inference
++ Added ToBigEndian flag (ToBigEndian() corrupts the SHA3 output by swapping bytes that didn't need swapping)
+~ Updated all comparisons in eddsa to attempt to be constant time
+~ Updated AES tag comparison
++ Added ValidateDecapsulationKey function for FIPS 203 Section 7.3 compliance
++ Added KMAC (HMAC using keccak)
++ Added a dummy point in Edwards to help with constant time
++ Added optional cofactor clearing for ed25519
+```
+
+## 1.x
+
+Covers 1.0.0 to 1.11.0.
+
+```diff
++ ToHex is about 185x faster
++ BLAKE3 is about 49x faster
++ FromHex is about 28x faster
++ SHA3/SHAKE is about 7.0x faster
++ ChaCha20 is about 4.4x faster
++ XXH32 is about 4.3x faster
++ CRC32 is about 62% faster
++ Base64 is about 60% faster
++ BLAKE2b is about 20% faster
++ AES-GCM is about 20% faster
++ SHA-1 is about 18% faster
++ Ed25519 is about 15% faster
++ Added Blake3
++ Added Poly1305 + AEAD(authenticated encryption with associated data)
+~ Changed AESCipher:Encrypt/Decrypt argument type to "buffer | string"
++ Added EdDSA.Mask25519 - Algorithm for exchanging keys
++ ChaCha20 is now accessible through AEAD: Encryption.AEAD.ChaCha20(...)
++ Made AesCipher accessible in AES (Encryption.AES.AesCipher)
+~ Updated RandomString to optionally return a buffer
++ Added argument type checks for AES, AEAD (ChaCha20, Poly1305 included), Blake2b/3, EdDSA and MaskedX25519
++ Made RandomBytes in EdDSA accessible: EdDSA.RandomBytes.Random(Length: number) -> buffer
+~ Changed EdDSA.RandomBytes to always return a Curve25519 valid buffer
+~ Decoupled scalar clamping from random bytes generation in EdDSA
+~ Changed hashing algorithms to return the digest buffer aswell (Note: the bytes are stored in *little endian*)
+~ Fixed MaskedX25119 calling old top level functions
++ Added Simon (Fast alternative encryption algorithm)
++ Added Speck (Fast alternative encryption algorithm)
++ Added XOR (Ultra fast implementation, note that this should never be used with the same key twice!)
+~ Fixed AEAD auth data generation
++ Base64.Encode now returns a buffer
++ Added Utilities.CSPRNG (Cryptographically secure pseudo RNG)
+~ Changed EdDSA to use CSPRNG
+~ Fixed how custom entropy is copied into the buffer
+~ Fixed SHA2 exports
++ Added a "performance mode" for CSPRNG: CSPRNG.BlockExpansion = true/false
++ Added buffer digests to SHA3
++ HMAC now errors if the provided hash function doesn't return a string and a buffer (Blake2b and XXH32 for the time being)
++ Conversions.FromHex can take string or buffer now
+~ Changed CTR mode for AES to use CSPRNG for init value
+~ Fixed Base64 not decoding messages properly with a length not divisible by 4
++ Scalar validation for Ed25519 - RFC 8032
++ Signature validation for Ed25519
++ Added even length check in Conversions.FromHex
++ Added MlDSA and MlKEM, post-quantum digital signature and key exchange algorithms
+~ Improved CSPRNG key seed
++ CSPRNG now uses Blake3 to hash the entropy
++ Blake2b now returns the hash as a string and a buffer digest
+```

@@ -43,7 +43,7 @@ local Mac = Hashing.KeyedHMAC(Key, Hashing.SHA2.SHA512, 128)
 local Hex: string, Tag: buffer = Mac(Message)
 ```
 
-With SHA-224, SHA-384 and SHA-512, each message skips two of the four compressions HMAC runs, so short messages are about twice as fast. On Roblox, SHA-256 goes through EncodingService, so there `KeyedHMAC` only saves the work of preparing the key. The function doesn't keep a reference to `Key`, so changing that buffer afterwards doesn't change it.
+With any SHA-2 hash, each message skips two of the four compressions HMAC runs, so short messages are almost twice as fast. The function doesn't keep a reference to `Key`, so changing that buffer afterwards doesn't change it.
 
 ## Checking a MAC
 
